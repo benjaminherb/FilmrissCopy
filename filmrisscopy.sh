@@ -1,5 +1,3 @@
-#!/bin/bash
-
 ## Start (Header Info)
 RED='tput setaf 1'
 NC='tput sgr0' # no color
