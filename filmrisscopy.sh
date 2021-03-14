@@ -292,8 +292,8 @@ log(){
 	echo >> "$logfilePath"
 }
 
-
-formatElapsedTime(){  # Changes seconds to h:m:s, change $elapsedTime to use, and $hela:$mela:$sela to show
+# Changes seconds to h:m:s, change $elapsedTime to use, and $hela:$mela:$sela to show
+formatElapsedTime(){
 	((hela=$elapsedTime/3600))
 	((mela=$elapsedTime%3600/60))
 	((sela=$elapsedTime%60))
@@ -321,7 +321,6 @@ printStatus(){
 	fi
 }
 
-
 ## Write preset_last.config
 writePreset(){
 echo "## FILMRISSCOPY PRESET"
@@ -331,60 +330,74 @@ echo "reelName1=$reelName1"
 echo "destinationFolder1=$destinationFolder1"
 }
 
-
-## Setup and load old project
-echo ; echo "Do you want to load the last project? (y/n)"
-read -e usePreset
-
-while [ ! $usePreset == "y" ] && [ ! $usePreset == "n" ] ; do
-	echo "Do you want to load the last project? (y/n)"
-	read -e usePreset
-done
-
-if [[ $usePreset == "y" ]]; then
-source "$scriptPath/filmrisscopy_preset_last.config"
-fi
-if [[ $usePreset == "n" ]]; then
-	setProjectName
-	sourceFolder1="-"
-	destinationFolder1="-"
-fi
-
 ## Edit Project Loop
 editProject(){
 	loop=true
- while [[ $loop == "true" ]]; do
+ 	while [[ $loop == "true" ]]; do
 
-	printStatus
+		printStatus
 
- 	echo
- 	echo "(0) EDIT PROJECT NAME  (1) EDIT SOURCE  (2) EDIT DESTINATION  (3) EDIT DATE  (5) EXIT SCREEN"
-	read -e command
+ 		echo
+ 		echo "(0) EDIT PROJECT NAME  (1) EDIT SOURCE  (2) EDIT DESTINATION  (3) EDIT DATE  (4) LOAD PRESET  (5) LOAD PRESET FROM FILE  (6) EXIT SCREEN"
+		read -e command
 
-	if [ $command == "0" ]; then setProjectName; 	fi
-	if [ $command == "1" ]; then setSource; 		fi
-	if [ $command == "2" ]; then setDestination; 	fi
-	if [ $command == "3" ]; then
-		echo "Input Date (Format: $projectDate)"
-		read -e projectDate
-	fi
-	if [ $command == "5" ]; then loop=false; 		fi
+		if [ $command == "0" ]; then setProjectName; 	fi
+		if [ $command == "1" ]; then setSource; 		fi
+		if [ $command == "2" ]; then setDestination; 	fi
+		if [ $command == "3" ]; then
+			echo "Input Date (Format: $projectDate)"
+			read -e projectDate
+		fi
+		if [ $command == "4" ]; then source "$scriptPath/filmrisscopy_preset_last.config" ;	 	fi
+		if [ $command == "5" ]; then
+			echo "Choose Preset Path"
+			read -e presetPath
+			source $presetPath
+		fi
+		if [ $command == "6" ]; then loop=false;		fi
+	done
+}
 
- done
+## Setup at Start
+startupSetup(){
+echo ; echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
+read -e usePreset
+while [ ! $usePreset == "0" ] && [ ! $usePreset == "1" ] && [ ! $usePreset == "2" ] && [ ! $usePreset == "3" ] ; do
+	echo ; echo "(0) SKIP  (1) LOAD LAST PRESET  (2) LOAD PRESET FROM FILE"
+	read -e usePreset
+done
+
+if [[ $usePreset == "1" ]]; then
+	setProjectName
+	setSource
+	setDestination
+fi
+
+if [[ $usePreset == "2" ]]; then
+	source "$scriptPath/filmrisscopy_preset_last.config"
+fi
+
+if [[ $usePreset == "3" ]]; then
+	echo "Choose Preset Path"
+	read -e presetPath
+	source $presetPath
+fi
 }
 
 
 ## Base Loop
+startupSetup
+
 while [ true ]; do
 
 	printStatus
 
 	echo
-	echo "(0) RUN  (1) EDIT PROJECT  (2) EXIT"
+	echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT"
 	read -e command
 
-	if [ $command == "0" ]  ; then
-		if [ ! "$sourceFolder1" == "-" ] && [ ! "$destinationFolder1" == "-" ] ; then # Check if atleast Destination 1 and Source 1 are set
+	if [ $command == "1" ]  ; then
+		if [ ! "$sourceFolder1" == "" ] && [ ! "$destinationFolder1" == "" ] [ ! "$projectName" == "" ]; then # Check if atleast Destination 1 and Source 1 are set
 
 			if [[ ! "$sourceFolder2" == "" ]]; then sourceNumber=2 ; else sourceNumber=1 ; fi
 			if [[ ! "$destinationFolder2" == "" ]]; then destinationNumber=2 ; else destinationNumber=1 ; fi
@@ -481,8 +494,8 @@ while [ true ]; do
 			echo "$($RED)ERROR: SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
 		fi
 	fi
-	if [ $command == "1" ]; then editProject; 	fi
-	if [ $command == "2" ]; then
+	if [ $command == "2" ]; then editProject; 	fi
+	if [ $command == "0" ]; then
 		writePreset >> "$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
 		exit
  	fi
@@ -496,4 +509,3 @@ done
 ## Count Clips / Files and log them / Show Folder Structure = Clips / falls dng
 ## .ds Ausschließen
 ## Datum ändern
-## Presets
