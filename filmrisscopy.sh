@@ -129,6 +129,7 @@ run(){
 		mkdir -p "$destinationFolderFullPath"
 	else
 		echo "$($RED)ERROR: Directory Already Exists in the Destination Folder$($NC)"
+		echo
 		fileDifference=$(( $( find "$sourceFolder" -type f | wc -l ) - $( find "$destinationFolderFullPath" -type f  \( -not -name "md5sum.txt" -not -name "*filmrisscopy_log.txt" \) | wc -l ) ))
 
 		if [[ $fileDifference == 0 ]]; then
@@ -326,8 +327,11 @@ writePreset(){
 echo "## FILMRISSCOPY PRESET"
 echo "projectName=$projectName"
 echo "sourceFolder1=$sourceFolder1"
+echo "sourceFolder2=$sourceFolder2"
 echo "reelName1=$reelName1"
+echo "reelName2=$reelName2"
 echo "destinationFolder1=$destinationFolder1"
+echo "destinationFolder2=$destinationFolder2"
 }
 
 ## Edit Project Loop
@@ -378,12 +382,12 @@ if [[ $usePreset == "2" ]]; then
 fi
 
 if [[ $usePreset == "3" ]]; then
+	echo
 	echo "Choose Preset Path"
 	read -e presetPath
 	source $presetPath
 fi
 }
-
 
 ## Base Loop
 startupSetup
@@ -397,7 +401,7 @@ while [ true ]; do
 	read -e command
 
 	if [ $command == "1" ]  ; then
-		if [ ! "$sourceFolder1" == "" ] && [ ! "$destinationFolder1" == "" ] [ ! "$projectName" == "" ]; then # Check if atleast Destination 1 and Source 1 are set
+		if [ ! "$sourceFolder1" == "" ] && [ ! "$destinationFolder1" == "" ] && [ ! "$projectName" == "" ]; then # Check if atleast Destination 1 and Source 1 are set
 
 			if [[ ! "$sourceFolder2" == "" ]]; then sourceNumber=2 ; else sourceNumber=1 ; fi
 			if [[ ! "$destinationFolder2" == "" ]]; then destinationNumber=2 ; else destinationNumber=1 ; fi
@@ -487,16 +491,28 @@ while [ true ]; do
 				echo "Do you want to quit the Program? (y/n)"
 				read -e quitFRC
 			done
-			if [[ $quitFRC == "y" ]]; then command=2	;	fi
+			if [[ $quitFRC == "y" ]]; then command=0	;	fi
 
 		else
 			echo
-			echo "$($RED)ERROR: SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
+			echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
 		fi
 	fi
 	if [ $command == "2" ]; then editProject; 	fi
 	if [ $command == "0" ]; then
+
+		echo
+		echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
+		read -e overWriteLastPreset
+		while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ] ; do
+			echo "Update last preset with the current Setup? (y/n)"
+			read -e overWriteLastPreset
+		done
+		if [[ $overWriteLastPreset == "y" ]]; then
 		writePreset >> "$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
+		echo ; 	echo "Preset Updated"
+		fi
+		echo
 		exit
  	fi
 
