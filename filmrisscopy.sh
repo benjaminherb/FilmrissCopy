@@ -14,6 +14,7 @@ cd $( dirname "$scriptPath")
 scriptPath=$(pwd)
 echo "Location:	"$scriptPath"/"
 echo "Logfiles:	"$scriptPath"/filmrisscopy_logs/"
+echo "Presets: 	"$scriptPath"/filmrisscopy_presets/"
 
 projectDate=$(date +"%Y%m%d")
 projectTime=$(date +"%H%M")
@@ -303,9 +304,19 @@ formatElapsedTime(){
 ## Print Current Status
 printStatus(){
 	echo
-	echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
+	if [[ $statusMode == "normal" ]]; then
+		echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
+	fi
+
+	if [[ $statusMode == "edit" ]]; then
+		echo "${BOLD}EDIT PROJECT SETTINGS${NORMAL}"
+
+	fi
+
 	echo "${BOLD}PROJECT NAME:${NORMAL}	$projectName"
-	echo "${BOLD}DATE/TIME:${NORMAL}	$projectDate"_"$projectTime"
+	echo "${BOLD}DATE:	${NORMAL}	$projectDate"
+	echo "${BOLD}TIME:	${NORMAL}	$projectTime"
+
 
 	if [[ ! "$sourceFolder2" == "" ]]; then # Only Show the second Source if it is not empty
 		echo "${BOLD}SOURCE $reelName1:${NORMAL}	$sourceFolder1"
@@ -339,26 +350,29 @@ editProject(){
 	loop=true
  	while [[ $loop == "true" ]]; do
 
+		statusMode="edit"
 		printStatus
+		statusMode="normal"
 
  		echo
- 		echo "(0) EDIT PROJECT NAME  (1) EDIT SOURCE  (2) EDIT DESTINATION  (3) EDIT DATE  (4) LOAD PRESET  (5) LOAD PRESET FROM FILE  (6) EXIT SCREEN"
-		read -e command
+ 		echo "(0) EXIT SCREEN  (1) EDIT PROJECT NAME  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) EDIT DATE  (5) LOAD PRESET  (6) LOAD PRESET FROM FILE"
+		read -e editCommand
 
-		if [ $command == "0" ]; then setProjectName; 	fi
-		if [ $command == "1" ]; then setSource; 		fi
-		if [ $command == "2" ]; then setDestination; 	fi
-		if [ $command == "3" ]; then
+		if [ $editCommand == "1" ]; then setProjectName; 	fi
+		if [ $editCommand == "2" ]; then setSource; 		fi
+		if [ $editCommand == "3" ]; then setDestination; 	fi
+		if [ $editCommand == "4" ]; then
 			echo "Input Date (Format: $projectDate)"
 			read -e projectDate
 		fi
-		if [ $command == "4" ]; then source "$scriptPath/filmrisscopy_preset_last.config" ;	 	fi
-		if [ $command == "5" ]; then
+		if [ $editCommand == "5" ]; then source "$scriptPath/filmrisscopy_preset_last.config" ;	 	fi
+		if [ $editCommand == "6" ]; then
 			echo "Choose Preset Path"
 			read -e presetPath
 			source $presetPath
 		fi
-		if [ $command == "6" ]; then loop=false;		fi
+
+		if [ $editCommand == "0" ]; then loop="false";		fi
 	done
 }
 
@@ -391,13 +405,14 @@ fi
 
 ## Base Loop
 startupSetup
+statusMode="normal" # choose how the Status will be shown, normal / edit
 
 while [ true ]; do
 
 	printStatus
 
 	echo
-	echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT"
+	echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) BENCHMARK"
 	read -e command
 
 	if [ $command == "1" ]  ; then
@@ -499,6 +514,7 @@ while [ true ]; do
 		fi
 	fi
 	if [ $command == "2" ]; then editProject; 	fi
+	if [ $command == "3" ]; then echo "not yet implemented"; 	fi
 	if [ $command == "0" ]; then
 
 		echo
@@ -524,4 +540,3 @@ done
 ## Make Checksum Calculations in the Sourcefolder first
 ## Count Clips / Files and log them / Show Folder Structure = Clips / falls dng
 ## .ds Ausschließen
-## Datum ändern
