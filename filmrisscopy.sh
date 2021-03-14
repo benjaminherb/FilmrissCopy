@@ -321,10 +321,58 @@ printStatus(){
 	fi
 }
 
-## Setup
-setProjectName
-sourceFolder1="-"
-destinationFolder1="-"
+
+## Write preset_last.config
+writePreset(){
+echo "## FILMRISSCOPY PRESET"
+echo "projectName=$projectName"
+echo "sourceFolder1=$sourceFolder1"
+echo "reelName1=$reelName1"
+echo "destinationFolder1=$destinationFolder1"
+}
+
+
+## Setup and load old project
+echo ; echo "Do you want to load the last project? (y/n)"
+read -e usePreset
+
+while [ ! $usePreset == "y" ] && [ ! $usePreset == "n" ] ; do
+	echo "Do you want to load the last project? (y/n)"
+	read -e usePreset
+done
+
+if [[ $usePreset == "y" ]]; then
+source "$scriptPath/filmrisscopy_preset_last.config"
+fi
+if [[ $usePreset == "n" ]]; then
+	setProjectName
+	sourceFolder1="-"
+	destinationFolder1="-"
+fi
+
+## Edit Project Loop
+editProject(){
+	loop=true
+ while [[ $loop == "true" ]]; do
+
+	printStatus
+
+ 	echo
+ 	echo "(0) EDIT PROJECT NAME  (1) EDIT SOURCE  (2) EDIT DESTINATION  (3) EDIT DATE  (5) EXIT SCREEN"
+	read -e command
+
+	if [ $command == "0" ]; then setProjectName; 	fi
+	if [ $command == "1" ]; then setSource; 		fi
+	if [ $command == "2" ]; then setDestination; 	fi
+	if [ $command == "3" ]; then
+		echo "Input Date (Format: $projectDate)"
+		read -e projectDate
+	fi
+	if [ $command == "5" ]; then loop=false; 		fi
+
+ done
+}
+
 
 ## Base Loop
 while [ true ]; do
@@ -332,7 +380,7 @@ while [ true ]; do
 	printStatus
 
 	echo
-	echo "(0) RUN  (1) EDIT PROJECT NAME  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) EXIT"
+	echo "(0) RUN  (1) EDIT PROJECT  (2) EXIT"
 	read -e command
 
 	if [ $command == "0" ]  ; then
@@ -419,23 +467,25 @@ while [ true ]; do
 			echo -e "${BOLD}$(($sourceNumber*$destinationNumber)) JOBS FINISHED IN $hela:$mela:$sela${NORMAL}"
 			echo
 
+
 			echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
 			read -e quitFRC
 			while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ] ; do
 				echo "Do you want to quit the Program? (y/n)"
 				read -e quitFRC
 			done
-			if [[ $quitFRC == "y" ]]; then command=4	;	fi
+			if [[ $quitFRC == "y" ]]; then command=2	;	fi
 
 		else
 			echo
 			echo "$($RED)ERROR: SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
 		fi
 	fi
-	if [ $command == "1" ]; then setProjectName; 	fi
-	if [ $command == "2" ]; then setSource; 	fi
-	if [ $command == "3" ]; then setDestination; 	fi
-	if [ $command == "4" ]; then exit; 	fi
+	if [ $command == "1" ]; then editProject; 	fi
+	if [ $command == "2" ]; then
+		writePreset >> "$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
+		exit
+ 	fi
 
 done
 
@@ -443,3 +493,7 @@ done
 ## Speedtest for Copy / Hash
 ## Add Copied Status
 ## Make Checksum Calculations in the Sourcefolder first
+## Count Clips / Files and log them / Show Folder Structure = Clips / falls dng
+## .ds Ausschließen
+## Datum ändern
+## Presets
