@@ -129,7 +129,7 @@ run(){
 	else
 		echo "$($RED)ERROR: Directory Already Exists in the Destination Folder$($NC)"
 		echo
-		fileDifference=$(( $( find "$sourceFolder" -type f | wc -l ) - $( find "$destinationFolderFullPath" -type f  \( -not -name "md5sum.txt" -not -name "*filmrisscopy_log.txt" \) | wc -l ) ))
+		fileDifference=$(( $( find "$sourceFolder" -type f | wc -l ) - $( find "$destinationFolderFullPath" -type f  \( -not -name "md5sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store"\) | wc -l ) ))
 
 		if [[ $fileDifference == 0 ]]; then
 			echo Source and Destination have the same Size
@@ -207,7 +207,7 @@ copyStatus(){
 	while [ true ]; do
 		sleep 1 # Change if it slows down the process to much / if more accuracy is needed
 
-		copiedFileCount=$(find "$destinationFolderFullPath" -type f \( -not -name "*filmrisscopy_log.txt" -not -name "md5sum.txt" \) | wc -l)
+		copiedFileCount=$(find "$destinationFolderFullPath" -type f \( -not -name "*filmrisscopy_log.txt" -not -name "md5sum.txt" -not -name ".DS_Store" \) | wc -l)
 		currentTime=$(date +%s)
 		elapsedTime=$(( $currentTime-$copyStartTime ))
 
@@ -231,7 +231,7 @@ checksum(){
 	echo "CHECKSUM CALCULATIONS ON DESTINATION:" >> "$logfilePath"
 	cd "$destinationFolderFullPath"
 	checksumStatus &
-	( find -type f \( -not -name "md5sum.txt" -not -name "*filmrisscopy_log.txt" \) -exec md5sum '{}' \; | tee md5sum.txt ) >> "$logfilePath" 2>&1 ; sleep 4 ; 	kill $!
+	( find -type f \( -not -name "md5sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec md5sum '{}' \; | tee md5sum.txt ) >> "$logfilePath" 2>&1 ; sleep 4 ; 	kill $!
 	echo
 
 	checksumStartTime=$(date +%s)
@@ -562,7 +562,5 @@ while [ true ]; do
  	fi
 done
 
-## Speedtest for Copy / Hash
 ## Add Copied Status
 ## Make Checksum Calculations in the Source folder first
-## .ds Ausschließen
