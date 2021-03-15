@@ -6,13 +6,13 @@ NORMAL=$(tput sgr0)
 
 echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
-echo  "Last Updated:	$( date -r "$scriptPath" )"
+echo  "LAST UPDATED:	$( date -r "$scriptPath" )"
 
 cd $( dirname "$scriptPath")
 scriptPath=$(pwd)
-echo "Location:	"$scriptPath"/"
-echo "Logfiles:	"$scriptPath"/filmrisscopy_logs/"
-echo "Presets: 	"$scriptPath"/filmrisscopy_presets/"
+echo "LOCATION:	"$scriptPath"/"
+echo "LOGFILES:	"$scriptPath"/filmrisscopy_logs/"
+echo "PRESETS: 	"$scriptPath"/filmrisscopy_presets/"
 
 projectDate=$(date +"%Y%m%d")
 projectTime=$(date +"%H%M")
