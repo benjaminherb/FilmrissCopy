@@ -117,7 +117,7 @@ run(){
 	totalByteSpace=$(du -s "$sourceFolder" | cut -f1) # Check if there is enough Space left
 	destinationFreeSpace=$(df --block-size=1 --output=avail "$destinationFolder" | cut -d$'\n' -f2)
 
-	if [[ $(( $destinationFreeSpace-$totalByteSpace)) < 20 ]]; then
+	if [[ $(( $destinationFreeSpace-$totalByteSpace)) -lt 20 ]]; then
 		echo "$($RED)ERROR: Not enough Disk Space left in $destinationFolder$($NC)"
 		return
 	fi
@@ -189,7 +189,7 @@ run(){
 	formatElapsedTime
 
 	echo	# End of the Job
-	if [[ ! $copyMode == "copy" ]] && [[ ! $copyMode == "rsync" ]] ; then
+	if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]] ; then
 		echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $hela:$mela:$sela)${NORMAL}"
 		sed -i "10 a VERIFIED $totalFileCount FILES IN $hela:$mela:$sela ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" > /dev/null 2>&1
 	else
@@ -205,14 +205,21 @@ run(){
 ## Copy progress
 copyStatus(){
 	while [ true ]; do
+		sleep 1 # Change if it slows down the process to much / if more accuracy is needed
+
 		copiedFileCount=$(find "$destinationFolderFullPath" -type f \( -not -name "*filmrisscopy_log.txt" -not -name "md5sum.txt" \) | wc -l)
 		currentTime=$(date +%s)
-
 		elapsedTime=$(( $currentTime-$copyStartTime ))
-		formatElapsedTime
 
-		echo -ne "( $copiedFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
-		sleep 3 # Change if it slows down the process to much / if more accuracy is needed
+		if [[ ! $copiedFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then # Make sure the calc doesnt divide through 0
+			aproxTime=$(echo "(($elapsedTime/($copiedFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut -d. -f1) # Calculate aproxTime with bc -l and cut the decimals
+		fi
+		if [[ $aproxTime == "" ]]; then aproxTime="0" ; fi
+
+		formatElapsedTime
+		formatAproxTime
+
+		echo -ne "$copiedFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $hela:$mela:$sela | Aprox. Time Left: $hapr:$mapr:$sapr    "\\r
 	done
 }
 
@@ -251,29 +258,42 @@ checksum(){
 ## Checksum Progress
 checksumStatus(){
 	while [[ true ]]; do
-		sleep 3
+		sleep 1
 
 		checksumFileCount=$(wc -l "$destinationFolderFullPath"/md5sum.txt | cut --delimiter=" " -f1)
 		currentTime=$(date +%s)
-
 		elapsedTime=$(( $currentTime-$checksumStartTime ))
-		formatElapsedTime
 
-		echo -ne "( $checksumFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
+		if [[ ! $checksumFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then # Make sure the calc doesnt divide through 0
+			aproxTime=$(echo "(($elapsedTime/($checksumFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut -d. -f1) # Calculate aproxTime with bc -l and cut the decimals
+		fi
+		if [[ $aproxTime == "" ]]; then aproxTime="0" ; fi
+
+		formatElapsedTime
+		formatAproxTime
+
+		echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $hela:$mela:$sela | Aprox. Time Left: $hapr:$mapr:$sapr    "\\r
 	done
 }
 
 ## Checksum Comparison progress
 checksumComparisonStatus(){
 	while [[ true ]]; do
-		sleep 3
+		sleep 1
+
 		checksumFileCount=$(( $(wc -l "$logfilePath" | cut --delimiter=" " -f1)-$logFileLineCount ))
 		currentTime=$(date +%s)
-
 		elapsedTime=$(( $currentTime-$checksumStartTime ))
-		formatElapsedTime
 
-		echo -ne "( $checksumFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
+		if [[ ! $checksumFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then # Make sure the calc doesnt divide through 0
+			aproxTime=$(echo "(($elapsedTime/($checksumFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut -d. -f1) # Calculate aproxTime with bc -l and cut the decimals
+		fi
+		if [[ $aproxTime == "" ]]; then aproxTime="0" ; fi
+
+		formatElapsedTime
+		formatAproxTime
+
+		echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $hela:$mela:$sela | Aprox. Time Left: $hapr:$mapr:$sapr    "\\r
 	done
 }
 
@@ -297,9 +317,15 @@ log(){
 
 ## Changes seconds to h:m:s, change $elapsedTime to use, and $hela:$mela:$sela to show
 formatElapsedTime(){
-	((hela=$elapsedTime/3600))
-	((mela=$elapsedTime%3600/60))
-	((sela=$elapsedTime%60))
+	printf -v hela "%02d" $(($elapsedTime/3600))
+	printf -v mela "%02d" $(($elapsedTime%3600/60))
+	printf -v sela "%02d" $(($elapsedTime%60))
+}
+
+formatAproxTime(){
+	printf -v hapr "%02d" $(($aproxTime/3600))
+	printf -v mapr "%02d" $(($aproxTime%3600/60))
+	printf -v sapr "%02d" $(($aproxTime%60))
 }
 
 ## Print Current Status
@@ -413,7 +439,7 @@ while [ true ]; do
 	printStatus
 
 	echo
-	echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) BENCHMARK"
+	echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT"
 	read -e command
 
 	if [ $command == "1" ]  ; then
@@ -424,7 +450,12 @@ while [ true ]; do
 
 			jobNumber=$(($sourceNumber*$destinationNumber))
 
-			echo ; echo ; echo "${BOLD}THERE ARE $(($sourceNumber*$destinationNumber)) COPY JOBS IN QUEUE${NORMAL}"
+			if [[ $jobNumber == "1" ]]; then
+				echo ; echo ; echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
+			else
+				echo ; echo ; echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
+			fi
+
 			startTimeAllJobs=$(date +%s)
 
 			if [ $sourceNumber == 1 ] ; then # One Source
@@ -514,9 +545,7 @@ while [ true ]; do
 		fi
 	fi
 	if [ $command == "2" ]; then editProject; 	fi
-	if [ $command == "3" ]; then echo "not yet implemented"; 	fi
 	if [ $command == "0" ]; then
-
 		echo
 		echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
 		read -e overWriteLastPreset
