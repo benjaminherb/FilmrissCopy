@@ -5,9 +5,7 @@ BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
 echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
-
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
-
 echo  "Last Updated:	$( date -r "$scriptPath" )"
 
 cd $( dirname "$scriptPath")
@@ -134,7 +132,6 @@ run(){
 		fileDifference=$(( $( find "$sourceFolder" -type f | wc -l ) - $( find "$destinationFolderFullPath" -type f  \( -not -name "md5sum.txt" -not -name "*filmrisscopy_log.txt" \) | wc -l ) ))
 
 		if [[ $fileDifference == 0 ]]; then
-			echo
 			echo Source and Destination have the same Size
 
 			echo "Run Checksum Calculations? (y/n)"
@@ -145,7 +142,7 @@ run(){
 				read -e rerunChecksum
 			done
 
-			if [[ $rerunChecksum == "y" ]]; then runMode=checksum ;	fi
+			if [[ $rerunChecksum == "y" ]]; then runMode=checksum ; echo ;	fi
 			if [[ $rerunChecksum == "n" ]]; then return ;	fi
 
 		else
@@ -192,10 +189,12 @@ run(){
 	formatElapsedTime
 
 	echo	# End of the Job
-	if [ ! $copyMode == "copy" ] && [ ! $copyMode == "rsync" ] ; then
+	if [[ ! $copyMode == "copy" ]] && [[ ! $copyMode == "rsync" ]] ; then
 		echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $hela:$mela:$sela)${NORMAL}"
+		sed -i "10 a VERIFIED $totalFileCount FILES IN $hela:$mela:$sela ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" > /dev/null 2>&1
 	else
 		echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $hela:$mela:$sela)${NORMAL}"
+		sed -i "10 a COPIED AND VERIFIED $totalFileCount FILES IN $hela:$mela:$sela ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" > /dev/null 2>&1
 	fi
 
 	mkdir -p "$scriptPath"/filmrisscopy_logs/
@@ -212,7 +211,7 @@ copyStatus(){
 		elapsedTime=$(( $currentTime-$copyStartTime ))
 		formatElapsedTime
 
-		echo -ne "($copiedFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
+		echo -ne "( $copiedFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
 		sleep 3 # Change if it slows down the process to much / if more accuracy is needed
 	done
 }
@@ -242,12 +241,10 @@ checksum(){
 	checksumPassedFiles=$(grep -c ": OK" "$logfilePath") # Checks wether the output to the logfile were all "OK" or not
 	if [[ $checksumPassedFiles == $totalFileCount ]]; then
 		echo "${BOLD}NO CHECKSUM ERRORS!${NORMAL}"
-		echo >> "$logfilePath"
-		echo NO CHECKSUM ERRORS! >> "$logfilePath"
+		sed -i "8 a NO CHECKSUM ERRORS!\n" "$logfilePath" > /dev/null 2>&1
 	else
 		echo "${BOLD}$($RED)ERROR: $(( $totalFileCount-$checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
-		echo >> "$logfilePath"
-		echo "ERROR: $(( $totalFileCount-$checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST" >> "$logfilePath"
+		sed -i "8 a ERROR: $(( $totalFileCount-$checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" > /dev/null 2>&1
 	fi
 }
 
@@ -262,7 +259,7 @@ checksumStatus(){
 		elapsedTime=$(( $currentTime-$checksumStartTime ))
 		formatElapsedTime
 
-		echo -ne "($checksumFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
+		echo -ne "( $checksumFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
 	done
 }
 
@@ -276,7 +273,7 @@ checksumComparisonStatus(){
 		elapsedTime=$(( $currentTime-$checksumStartTime ))
 		formatElapsedTime
 
-		echo -ne "($checksumFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
+		echo -ne "( $checksumFileCount / $totalFileCount Files - Total Size: $totalFileSize )	(Elapsed Time: $hela:$mela:$sela)"\\r
 	done
 }
 
@@ -292,9 +289,13 @@ log(){
 	echo JOB:		$currentJobNumber / $jobNumber >> "$logfilePath"
 	echo RUNMODE:	$runMode >> "$logfilePath"
 	echo >> "$logfilePath"
+	cd "$sourceFolder"
+	echo FOLDER STRUCTURE:	 >> "$logfilePath"
+	find . ! -path . -type d >> "$logfilePath" # Print Folder Structure
+
 }
 
-# Changes seconds to h:m:s, change $elapsedTime to use, and $hela:$mela:$sela to show
+## Changes seconds to h:m:s, change $elapsedTime to use, and $hela:$mela:$sela to show
 formatElapsedTime(){
 	((hela=$elapsedTime/3600))
 	((mela=$elapsedTime%3600/60))
@@ -499,7 +500,6 @@ while [ true ]; do
 			echo -e "${BOLD}$(($sourceNumber*$destinationNumber)) JOBS FINISHED IN $hela:$mela:$sela${NORMAL}"
 			echo
 
-
 			echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
 			read -e quitFRC
 			while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ] ; do
@@ -531,12 +531,9 @@ while [ true ]; do
 		echo
 		exit
  	fi
-
 done
 
-## Cleanup
 ## Speedtest for Copy / Hash
 ## Add Copied Status
-## Make Checksum Calculations in the Sourcefolder first
-## Count Clips / Files and log them / Show Folder Structure = Clips / falls dng
+## Make Checksum Calculations in the Source folder first
 ## .ds Ausschließen
