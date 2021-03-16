@@ -564,3 +564,6 @@ done
 
 ## Add Copied Status
 ## Make Checksum Calculations in the Source folder first
+## Option for different Algorithms (XXHASH, SHA-1) + Option for no verification
+## MHL Implementation
+## Implement Telegram Bot
