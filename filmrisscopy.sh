@@ -24,7 +24,7 @@ setProjectName(){
 	read -e projectName
 }
 
-## Choose Ssource Directory
+## Choose Ssource Directoryot -name
 setSource(){
 	echo
 	echo Choose Source Folder:
@@ -129,7 +129,7 @@ run(){
 	else
 		echo "$($RED)ERROR: Directory Already Exists in the Destination Folder$($NC)"
 		echo
-		fileDifference=$(( $( find "$sourceFolder" -type f | wc -l ) - $( find "$destinationFolderFullPath" -type f  \( -not -name "md5sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store"\) | wc -l ) ))
+		fileDifference=$(( $( find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l ) - $( find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l ) ))
 
 		if [[ $fileDifference == 0 ]]; then
 			echo Source and Destination have the same Size
@@ -171,14 +171,14 @@ run(){
 	if [[ $runMode == "copy" ]]; then
 		echo "${BOLD}RUNNING COPY...${NORMAL}"
 		copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-		cp --recursive --verbose "$sourceFolder" "$destinationFolderFullPath" >> "$logfilePath" 2>&1 ; sleep 4 ; kill $! # Copy then wait for the Status to catch up
+		cp --recursive --verbose "$sourceFolder" "$destinationFolderFullPath" >> "$logfilePath" 2>&1 ; sleep 2 ; kill $! # Copy then wait for the Status to catch up
 		echo
 	fi
 
 	if [[ $runMode == "rsync" ]]; then
 		sudo echo "${BOLD}RUNNING RSYNC...${NORMAL}"
 		copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-		sudo rsync --verbose --checksum --archive  "$sourceFolder" "$destinationFolderFullPath" >> "$logfilePath" 2>&1 ; sleep 4 ; kill $! # Needs Root, checks based on checksum Calculations
+		sudo rsync --verbose --checksum --archive  "$sourceFolder" "$destinationFolderFullPath" >> "$logfilePath" 2>&1 ; sleep 2 ; kill $! # Needs Root, checks based on checksum Calculations
 		echo
 	fi
 
@@ -186,20 +186,21 @@ run(){
 
 	currentTime=$(date +%s)
 	elapsedTime=$(( $currentTime-$copyStartTime ))
-	formatElapsedTime
+
+	timeTemp=$elapsedTime
+	elapsedTimeFormatted=$(formatTime)
 
 	echo	# End of the Job
 	if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]] ; then
-		echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $hela:$mela:$sela)${NORMAL}"
-		sed -i "10 a VERIFIED $totalFileCount FILES IN $hela:$mela:$sela ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" > /dev/null 2>&1
+		echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
+		sed -i "10 a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" > /dev/null 2>&1
 	else
-		echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $hela:$mela:$sela)${NORMAL}"
-		sed -i "10 a COPIED AND VERIFIED $totalFileCount FILES IN $hela:$mela:$sela ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" > /dev/null 2>&1
+		echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
+		sed -i "10 a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" > /dev/null 2>&1
 	fi
 
 	mkdir -p "$scriptPath"/filmrisscopy_logs/
 	cp "$logfilePath" "$scriptPath"/filmrisscopy_logs/  # Backup logs to a folder in the scriptpath
-
 }
 
 ## Copy progress
@@ -207,7 +208,7 @@ copyStatus(){
 	while [ true ]; do
 		sleep 1 # Change if it slows down the process to much / if more accuracy is needed
 
-		copiedFileCount=$(find "$destinationFolderFullPath" -type f \( -not -name "*filmrisscopy_log.txt" -not -name "md5sum.txt" -not -name ".DS_Store" \) | wc -l)
+		copiedFileCount=$(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)
 		currentTime=$(date +%s)
 		elapsedTime=$(( $currentTime-$copyStartTime ))
 
@@ -216,10 +217,12 @@ copyStatus(){
 		fi
 		if [[ $aproxTime == "" ]]; then aproxTime="0" ; fi
 
-		formatElapsedTime
-		formatAproxTime
+		timeTemp=$elapsedTime
+		elapsedTimeFormatted=$(formatTime)
+		timeTemp=$aproxTime
+		aproxTimeFormatted=$(formatTime)
 
-		echo -ne "$copiedFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $hela:$mela:$sela | Aprox. Time Left: $hapr:$mapr:$sapr    "\\r
+		echo -ne "$copiedFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted"\\r
 	done
 }
 
@@ -231,7 +234,7 @@ checksum(){
 	echo "CHECKSUM CALCULATIONS ON DESTINATION:" >> "$logfilePath"
 	cd "$destinationFolderFullPath"
 	checksumStatus &
-	( find -type f \( -not -name "md5sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec md5sum '{}' \; | tee md5sum.txt ) >> "$logfilePath" 2>&1 ; sleep 4 ; 	kill $!
+	( find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec md5sum '{}' \; | tee md5sum.txt ) >> "$logfilePath" 2>&1 ; sleep 2 ; 	kill $!
 	echo
 
 	checksumStartTime=$(date +%s)
@@ -242,7 +245,7 @@ checksum(){
 	cd "$sourceFolder"
 	cd ..
 	checksumComparisonStatus &
-	md5sum -c "$destinationFolderFullPath""/md5sum.txt" >> "$logfilePath" 2>&1 ; sleep 4 ; kill $!
+	md5sum -c "$destinationFolderFullPath""/md5sum.txt" >> "$logfilePath" 2>&1 ; sleep 2 ; kill $!
 	echo
 
 	checksumPassedFiles=$(grep -c ": OK" "$logfilePath") # Checks wether the output to the logfile were all "OK" or not
@@ -269,10 +272,12 @@ checksumStatus(){
 		fi
 		if [[ $aproxTime == "" ]]; then aproxTime="0" ; fi
 
-		formatElapsedTime
-		formatAproxTime
+		timeTemp=$elapsedTime
+		elapsedTimeFormatted=$(formatTime)
+		timeTemp=$aproxTime
+		aproxTimeFormatted=$(formatTime)
 
-		echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $hela:$mela:$sela | Aprox. Time Left: $hapr:$mapr:$sapr    "\\r
+		echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted"\\r
 	done
 }
 
@@ -290,10 +295,12 @@ checksumComparisonStatus(){
 		fi
 		if [[ $aproxTime == "" ]]; then aproxTime="0" ; fi
 
-		formatElapsedTime
-		formatAproxTime
+		timeTemp=$elapsedTime
+		elapsedTimeFormatted=$(formatTime)
+		timeTemp=$aproxTime
+		aproxTimeFormatted=$(formatTime)
 
-		echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $hela:$mela:$sela | Aprox. Time Left: $hapr:$mapr:$sapr    "\\r
+		echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $elapsedTimeFormatted"\\r
 	done
 }
 
@@ -315,17 +322,12 @@ log(){
 
 }
 
-## Changes seconds to h:m:s, change $elapsedTime to use, and $hela:$mela:$sela to show
-formatElapsedTime(){
-	printf -v hela "%02d" $(($elapsedTime/3600))
-	printf -v mela "%02d" $(($elapsedTime%3600/60))
-	printf -v sela "%02d" $(($elapsedTime%60))
-}
-
-formatAproxTime(){
-	printf -v hapr "%02d" $(($aproxTime/3600))
-	printf -v mapr "%02d" $(($aproxTime%3600/60))
-	printf -v sapr "%02d" $(($aproxTime%60))
+## Changes seconds to h:m:s, change $tempTime to use, and save the output in a variable
+formatTime(){
+	h=$(($timeTemp/3600))
+	m=$(($timeTemp%3600/60))
+	s=$(($timeTemp%60))
+	printf "%02d:%02d:%02d" $h $m $s
 }
 
 ## Print Current Status
@@ -525,10 +527,12 @@ while [ true ]; do
 			endTimeAllJobs=$(date +%s)
 
 			elapsedTime=$(( $endTimeAllJobs-$startTimeAllJobs ))
-			formatElapsedTime
+
+			timeTemp=$elapsedTime
+			elapsedTimeFormatted=$(formatTime)
 
 			echo
-			echo -e "${BOLD}$(($sourceNumber*$destinationNumber)) JOBS FINISHED IN $hela:$mela:$sela${NORMAL}"
+			echo -e "${BOLD}$(($sourceNumber*$destinationNumber)) JOBS FINISHED IN $elapsedTimeFormatted"
 			echo
 
 			echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
@@ -554,7 +558,7 @@ while [ true ]; do
 			read -e overWriteLastPreset
 		done
 		if [[ $overWriteLastPreset == "y" ]]; then
-		writePreset >> "$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
+		writePreset > "$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
 		echo ; 	echo "Preset Updated"
 		fi
 		echo
@@ -567,3 +571,7 @@ done
 ## Option for different Algorithms (XXHASH, SHA-1) + Option for no verification
 ## MHL Implementation
 ## Implement Telegram Bot
+## Add Option for verifying Checksum using a FilmrissCopyLogFileTM
+## Default Preset
+## Log Times of individual Tasks
+## Change Loop Input Method
