@@ -28,85 +28,92 @@ setProjectName(){
 setSource(){
 	echo
 	echo Choose Source Folder:
-	read -e sourceFolder1
+	read -e sourceFolderTemp
 
-	if [[ ! -d "$sourceFolder1" ]]; then
-		echo "$($RED)ERROR: $sourceFolder1 is not a valid Source$($NC)"
+	if [[ ! -d "$sourceFolderTemp" ]]; then
+		echo "$($RED)ERROR: $sourceFolderTemp is not a valid Source$($NC)"
 		setSource
 	else
-		setReelName1
+		setReelName
 	fi
-	setSource2
+
+	allSourceFolders=( "$sourceFolderTemp" )
+	allReelNames=( "$reelNameTemp" )
+
+	loop="true"
+	while [[ $loop == "true" ]]; do
+		echo
+		echo "Choose Additional Source Folder (Enter to Skip)"
+		read -e sourceFolderTemp
+
+		duplicateSource="false"
+		for src in "${allSourceFolders[@]}" ; do # Loops over source array to check if the new source is a douplicate
+			if [ "${src}" == "$sourceFolderTemp" ] ; then
+				duplicateSource="true"
+				break
+			fi
+		done
+
+		if [[ $sourceFolderTemp == "" ]]; then
+			loop=false
+		elif [ ! -d "$sourceFolderTemp" ]; then
+			echo "$($RED)ERROR: "$sourceFolderTemp" is not a valid Sorce $($NC)"
+		elif [[ $duplicateSource == "true" ]]; then
+			echo "$($RED)ERROR: You can not set the same source twice in a project $($NC)"
+		else
+			setReelName ;
+			allSourceFolders+=("$sourceFolderTemp")
+			allReelNames+=("$reelNameTemp")
+		fi
+	done
 }
 
-## Choose Input Reel Name
-setReelName1(){
+## Choose Reel Name
+setReelName(){
 	echo
 	echo Source Reel Name:
-	read -e reelName1
-}
-
-## Add / Edit Source 2
-setSource2(){
-	echo
-	echo "Choose Additional Source Folder (Enter to Skip)"
-	read -e sourceFolder2
-
-	if [ ! -d "$sourceFolder2" ] && [ ! "$sourceFolder2" == "" ]; then
-		echo "$($RED) ERROR: $sourceFolder2 is not a valid Sorce $($NC)"
-		setSource2
-	fi
-
-	if [[ "$sourceFolder2" == "$sourceFolder1" ]]; then
-		echo "$($RED) ERROR: Source 2 can not be the same as Source 1 $($NC)"
-		setSource2
-	fi
-
-	if [[ ! "$sourceFolder2" == "" ]]; then setReelName2 ; fi # Only ask for ReelName2 if Sorce 2 isnt empty
-}
-
-## Choose Source 2 Reel Name
-setReelName2(){
-	echo
-	echo Source 2 Reel Name:
-	read -e reelName2
-
-	if [[ $reelName2 == $reelName1 ]]; then # Error if both Sources have the same Reel Name
-		echo
-		echo "$($RED)ERROR: Reel Name 2 can not be the same as Reel Name 1 $($NC)"
-		setReelName2
-	fi
+	read -e reelNameTemp
 }
 
 ## Choose Destination Directory
 setDestination(){
 	echo
 	echo Choose Destination Folder:
-	read -e destinationFolder1
+	read -e destinationFolderTemp
 
-	if [[ ! -d "$destinationFolder1" ]]; then
-		echo "$($RED)ERROR: $destinationFolder1 is not a valid Destination $($NC)"
+	if [[ ! -d "$destinationFolderTemp" ]]; then
+		echo "$($RED)ERROR: $destinationFolderTemp is not a valid Destination $($NC)"
 		setDestination
 	fi
 
-	setDestination2
-}
+	allDestinationFolders=( "$destinationFolderTemp" )
 
-## Add / Edit Destination 2
-setDestination2(){
-	echo
-	echo "Choose Aditional Destination Folder (Enter to Skip)"
-	read -e destinationFolder2
 
-	if [ ! -d "$destinationFolder2" ] && [ ! "$destinationFolder2" == "" ] ; then
-		echo "$($RED)ERROR: $destinationFolder2 is not a valid Destination $($NC)"
-		setDestination2
-	fi
+	duplicateDestination="false"
+	for dst in "${allDestinationFolders[@]}" ; do # Loops over source array to check if the new source is a douplicate
+		if [ "${dst}" == "$destinationFolderTemp" ] ; then
+			duplicateDestination="true"
+			break
+		fi
+	done
 
-	if [[ "$destinationFolder2" == "$destinationFolder1" ]]; then
-		echo "$($RED)ERROR: Destination 2 can not be the same as Destination 1 $($NC)"
-		setDestination2
-	fi
+	loop="true"
+	while [[ $loop == "true" ]]; do
+		echo
+		echo "Choose Additional Destination Folder (Enter to Skip)"
+		read -e destinationFolderTemp
+
+		if [[ $destinationFolderTemp == "" ]]; then
+			loop=false
+		elif [ ! -d "$destinationFolderTemp" ]; then
+			echo "$($RED)ERROR: "$destinationFolderTemp" is not a valid Destination $($NC)"
+		elif [[ duplicateDestination == "true"  ]]; then
+			echo "$($RED)ERROR: You can not set the same destination twice in a project $($NC)"
+		else
+			allDestinationFolders+=("$destinationFolderTemp")
+		fi
+	done
+
 }
 
 ## Run the main Copy Process
@@ -346,20 +353,20 @@ printStatus(){
 	echo "${BOLD}DATE:	${NORMAL}	$projectDate"
 	echo "${BOLD}TIME:	${NORMAL}	$projectTime"
 
+	x=0
+	for src in "${allSourceFolders[@]}" ; do # Loops over source array prints all entrys
+	echo "${BOLD}SOURCE ${allReelNames[x]}:${NORMAL}	$src"
+	x=$((x+1))
+	done
 
-	if [[ ! "$sourceFolder2" == "" ]]; then # Only Show the second Source if it is not empty
-		echo "${BOLD}SOURCE $reelName1:${NORMAL}	$sourceFolder1"
-		echo "${BOLD}SOURCE $reelName2:${NORMAL}	$sourceFolder2"
-	else
-		echo "${BOLD}SOURCE $reelName1:${NORMAL}	$sourceFolder1"
-	fi
+	x=1
+	for dst in "${allDestinationFolders[@]}" ; do # Loops over destination array prints all entrys
+	echo "${BOLD}DESTINATION $x:${NORMAL}	$dst"
+		x=$((x+1))
+	done
 
-	if [[ ! "$destinationFolder2" == "" ]]; then # Only Show the second Destination if it is not empty
-		echo "${BOLD}DESTINATION 1:${NORMAL}	$destinationFolder1"
-		echo "${BOLD}DESTINATION 2:${NORMAL}	$destinationFolder2"
-	else
-		echo "${BOLD}DESTINATION:${NORMAL}	$destinationFolder1"
-	fi
+
+
 }
 
 ## Write preset_last.config
@@ -575,3 +582,4 @@ done
 ## Default Preset
 ## Log Times of individual Tasks
 ## Change Loop Input Method
+## Implement Source / Destination Array
