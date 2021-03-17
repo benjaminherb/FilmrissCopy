@@ -1,4 +1,4 @@
-![FilmrissCopy_Banner](https://cloud.benjamin-herb.de/index.php/s/8ZMeTZAFAK7wczk)
+![FilmrissCopy_Banner](FilmrissCopy_Banner.jpg)
 
 # Filmriss Copy Version 0.1
 
