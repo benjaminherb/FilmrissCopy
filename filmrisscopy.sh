@@ -439,7 +439,7 @@ startupSetup
 
 while [ true ]; do
 
-	statusMode="normal" # choose how the Status will be shown (normal / edit)
+	statusMode="normal" # choose how the Status will be shown (normal or edit)
 	printStatus
 
 	echo
