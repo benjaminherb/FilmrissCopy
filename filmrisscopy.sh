@@ -346,7 +346,6 @@ printStatus(){
 
 	if [[ $statusMode == "edit" ]]; then
 		echo "${BOLD}EDIT PROJECT SETTINGS${NORMAL}"
-
 	fi
 
 	echo "${BOLD}PROJECT NAME:${NORMAL}	$projectName"
@@ -371,14 +370,14 @@ printStatus(){
 
 ## Write preset_last.config
 writePreset(){
-echo "## FILMRISSCOPY PRESET"
-echo "projectName=$projectName"
-echo "sourceFolder1=$sourceFolder1"
-echo "sourceFolder2=$sourceFolder2"
-echo "reelName1=$reelName1"
-echo "reelName2=$reelName2"
-echo "destinationFolder1=$destinationFolder1"
-echo "destinationFolder2=$destinationFolder2"
+	echo "## FILMRISSCOPY PRESET"
+	echo "projectName=$projectName"
+	echo "sourceFolder1=$sourceFolder1"
+	echo "sourceFolder2=$sourceFolder2"
+	echo "reelName1=$reelName1"
+	echo "reelName2=$reelName2"
+	echo "destinationFolder1=$destinationFolder1"
+	echo "destinationFolder2=$destinationFolder2"
 }
 
 ## Edit Project Loop
@@ -417,7 +416,7 @@ startupSetup(){
 echo ; echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
 read -e usePreset
 while [ ! $usePreset == "0" ] && [ ! $usePreset == "1" ] && [ ! $usePreset == "2" ] && [ ! $usePreset == "3" ] ; do
-	echo ; echo "(0) SKIP  (1) LOAD LAST PRESET  (2) LOAD PRESET FROM FILE"
+	echo ; echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
 	read -e usePreset
 done
 
@@ -425,13 +424,9 @@ if [[ $usePreset == "1" ]]; then
 	setProjectName
 	setSource
 	setDestination
-fi
-
-if [[ $usePreset == "2" ]]; then
+elif [[ $usePreset == "2" ]]; then
 	source "$scriptPath/filmrisscopy_preset_last.config"
-fi
-
-if [[ $usePreset == "3" ]]; then
+elif [[ $usePreset == "3" ]]; then
 	echo
 	echo "Choose Preset Path"
 	read -e presetPath
@@ -441,10 +436,10 @@ fi
 
 ## Base Loop
 startupSetup
-statusMode="normal" # choose how the Status will be shown, normal / edit
 
 while [ true ]; do
 
+	statusMode="normal" # choose how the Status will be shown, normal / edit
 	printStatus
 
 	echo
@@ -548,7 +543,7 @@ while [ true ]; do
 				echo "Do you want to quit the Program? (y/n)"
 				read -e quitFRC
 			done
-			if [[ $quitFRC == "y" ]]; then command=0	;	fi
+			if [[ $quitFRC == "y" ]]; then command=0 ; fi
 
 		else
 			echo
