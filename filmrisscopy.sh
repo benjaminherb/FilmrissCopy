@@ -1,3 +1,19 @@
+# FilmrissCopy is a program for copying and verifying video / audio files for onset backups.
+# Copyright (C) <2021>  <Benjamin Herb>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 ## Start (Header Info)
 RED='tput setaf 1'
 NC='tput sgr0' # no color
@@ -5,6 +21,7 @@ BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
 echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
+echo
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
 echo "LAST UPDATED:	$(date -r "$scriptPath")"
 
