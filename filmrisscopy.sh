@@ -48,7 +48,7 @@ setSource() {
     read -e sourceFolderTemp
 
     if [[ ! -d "$sourceFolderTemp" ]]; then
-        echo "$($RED)ERROR: $sourceFolderTemp is not a valid Source$($NC)"
+        echo "$($RED)ERROR: $sourceFolderTemp IS NOT A VALID SOURCE$($NC)"
         setSource
     else
         setReelName
@@ -74,9 +74,9 @@ setSource() {
         if [[ $sourceFolderTemp == "" ]]; then
             loop=false
         elif [ ! -d "$sourceFolderTemp" ]; then
-            echo "$($RED)ERROR: "$sourceFolderTemp" is not a valid Sorce $($NC)"
+            echo "$($RED)ERROR: "$sourceFolderTemp" IS NOT A VALID SOURCE$($NC)"
         elif [[ $duplicateSource == "true" ]]; then
-            echo "$($RED)ERROR: You can not set the same source twice in a project $($NC)"
+            echo "$($RED)ERROR: YOU CAN NOT SET THE SAME SOURCE TWICE IN A PROJECT$($NC)"
         else
             setReelName
             allSourceFolders+=("$sourceFolderTemp")
@@ -99,7 +99,7 @@ setDestination() {
     read -e destinationFolderTemp
 
     if [[ ! -d "$destinationFolderTemp" ]]; then
-        echo "$($RED)ERROR: $destinationFolderTemp is not a valid Destination $($NC)"
+        echo "$($RED)ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION $($NC)"
         setDestination
     fi
 
@@ -122,9 +122,9 @@ setDestination() {
         if [[ $destinationFolderTemp == "" ]]; then
             loop=false
         elif [ ! -d "$destinationFolderTemp" ]; then
-            echo "$($RED)ERROR: "$destinationFolderTemp" is not a valid Destination $($NC)"
+            echo "$($RED)ERROR: "$destinationFolderTemp" IS NOT A VALID DESTINATION$($NC)"
         elif [[ duplicateDestination == "true" ]]; then
-            echo "$($RED)ERROR: You can not set the same destination twice in a project $($NC)"
+            echo "$($RED)ERROR: YOU CAN NOT SET THE SAME DESTINATION TWICE IN A PROJECT$($NC)"
         else
             allDestinationFolders+=("$destinationFolderTemp")
         fi
@@ -141,7 +141,7 @@ run() {
     destinationFreeSpace=$(df --block-size=1 --output=avail "$destinationFolder" | cut -d$'\n' -f2)
 
     if [[ $(($destinationFreeSpace - $totalByteSpace)) -lt 20 ]]; then
-        echo "$($RED)ERROR: Not enough Disk Space left in $destinationFolder$($NC)"
+        echo "$($RED)ERROR: NOT ENOUGH DISK SPACE LEFT IN $destinationFolder$($NC)"
         return
     fi
 
@@ -150,7 +150,7 @@ run() {
     if [[ ! -d "$destinationFolderFullPath" ]]; then # Check if the folder already exists, and creates the structure if needed
         mkdir -p "$destinationFolderFullPath"
     else
-        echo "$($RED)ERROR: Directory Already Exists in the Destination Folder$($NC)"
+        echo "$($RED)ERROR: DIRECTORY ALREAD EXISTS IN THE DESTINATION FOLDER$($NC)"
         echo
         fileDifference=$(($(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l) - $(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)))
 
@@ -173,7 +173,12 @@ run() {
 
         else
 
-            echo "There are $fileDifference Files missing compared to the Source Directory"
+            if [ $fileDifference -gt 0 ]; then
+                echo "There are $fileDifference Files missing compared to the Source Directory"
+            else
+                fileDifference=$(($fileDifference * -1))
+                echo "There are $fileDifference Files more in the Destination than in the Source Directory. The Folder is probably already in use for something different!"
+            fi
             echo "Run RSYNC to copy the missing Files? (Needs Sudo Privileges) (y/n)"
             read -e runRsync
 
@@ -190,7 +195,7 @@ run() {
 
     log # Create Log File and Write Header
 
-    totalFileCount=$(find "$sourceFolder" -type f | wc -l)
+    totalFileCount=$(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)
     totalFileSize=$(du -msh "$sourceFolder" | cut -f1)
     copyStartTime=$(date +%s)
 
@@ -228,6 +233,8 @@ run() {
         echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
         sed -i "10 a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
     fi
+
+    sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
 
     mkdir -p "$scriptPath"/filmrisscopy_logs/
     cp "$logfilePath" "$scriptPath"/filmrisscopy_logs/ # Backup logs to a folder in the scriptpath
@@ -350,6 +357,8 @@ log() {
     echo JOB: $currentJobNumber / $jobNumber >>"$logfilePath"
     echo RUNMODE: $runMode >>"$logfilePath"
     echo >>"$logfilePath"
+    echo THE COPY PROCESS WAS NOT COMPLETED CORRECTLY >>"$logfilePath" # Will be Deleted after the Job is finished
+    echo >>"$logfilePath"
     cd "$sourceFolder"
     echo FOLDER STRUCTURE: >>"$logfilePath"
     find . ! -path . -type d >>"$logfilePath" # Print Folder Structure
@@ -382,27 +391,36 @@ printStatus() {
     x=0
     for src in "${allSourceFolders[@]}"; do # Loops over source array prints all entrys
         echo "${BOLD}SOURCE ${allReelNames[x]}:${NORMAL}	$src"
-        x=$((x + 1))
+        ((x++))
     done
 
     x=1
     for dst in "${allDestinationFolders[@]}"; do # Loops over destination array prints all entrys
         echo "${BOLD}DESTINATION $x:${NORMAL}	$dst"
-        x=$((x + 1))
+        ((x++))
     done
 
 }
 
 ## Write preset_last.config
 writePreset() {
+
     echo "## FILMRISSCOPY PRESET"
     echo "projectName=$projectName"
-    echo "sourceFolder1=$sourceFolder1"
-    echo "sourceFolder2=$sourceFolder2"
-    echo "reelName1=$reelName1"
-    echo "reelName2=$reelName2"
-    echo "destinationFolder1=$destinationFolder1"
-    echo "destinationFolder2=$destinationFolder2"
+    echo "allSourceFolders=()"
+    echo "allReelNames=()"
+    echo "allDestinationFolders=()"
+
+    x=0
+    for src in "${allSourceFolders[@]}"; do # Loops over source array prints all entrys
+        echo "allSourceFolders+=(\""$src"\")"
+        echo "allReelNames+=("${allReelNames[x]}")"
+        ((x++))
+    done
+
+    for dst in "${allDestinationFolders[@]}"; do # Loops over destination array prints all entrys
+        echo "allDestinationFolders+=(\""$dst"\")"
+    done
 }
 
 ## Edit Project Loop
@@ -429,7 +447,7 @@ editProject() {
         if [ $editCommand == "6" ]; then
             echo "Choose Preset Path"
             read -e presetPath
-            source $presetPath
+            source "$presetPath"
         fi
 
         if [ $editCommand == "0" ]; then loop="false"; fi
@@ -474,113 +492,36 @@ while [ true ]; do
     read -e command
 
     if [ $command == "1" ]; then
-        if [ ! "$sourceFolder1" == "" ] && [ ! "$destinationFolder1" == "" ] && [ ! "$projectName" == "" ]; then # Check if atleast Destination 1 and Source 1 are set
+        if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
 
-            if [[ ! "$sourceFolder2" == "" ]]; then sourceNumber=2; else sourceNumber=1; fi
-            if [[ ! "$destinationFolder2" == "" ]]; then destinationNumber=2; else destinationNumber=1; fi
+            jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
 
-            jobNumber=$(($sourceNumber * $destinationNumber))
+            echo
+            echo
 
-            if [[ $jobNumber == "1" ]]; then
-                echo
-                echo
+            if [ $jobNumber -eq 1 ]; then
                 echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
             else
-                echo
-                echo
                 echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
             fi
 
             startTimeAllJobs=$(date +%s)
 
-            if [ $sourceNumber == 1 ]; then # One Source
-                sourceFolder="$sourceFolder1"
-                reelName=$reelName1
+            currentJobNumber=0
+            reelNumber=0
+            for sourceFolder in "${allSourceFolders[@]}"; do # Loops over Source array for the Job Queue
 
-                if [ $destinationNumber == 1 ]; then # One Source One Destination
-                    currentJobNumber=1
-                    destinationFolder="$destinationFolder1"
+                reelName=${allReelNames[$reelNumber]}
+                ((reelNumber++))
+
+                for destinationFolder in "${allDestinationFolders[@]}"; do # Loops over Destination array for the Job Que
+                    ((currentJobNumber++))
                     echo
                     echo
-                    echo "${BOLD}JOB $currentJobNumber/1		$sourceFolder -> $destinationFolder${NORMAL}"
+                    echo "${BOLD}JOB $currentJobNumber / $jobNumber   $sourceFolder -> $destinationFolder${NORMAL}"
                     run
-                fi
-                if [ $destinationNumber == 2 ]; then # One Source Two Destinations
-                    currentJobNumber=1
-                    destinationFolder="$destinationFolder1"
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber/2		$sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-
-                    currentJobNumber=2
-                    destinationFolder="$destinationFolder2"
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber/2		$sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-                fi
-            fi
-
-            if [ $sourceNumber == 2 ]; then          # Two Sources
-                if [ $destinationNumber == 1 ]; then # Two Sources One Destination
-                    destinationFolder="$destinationFolder1"
-
-                    currentJobNumber=1
-                    sourceFolder="$sourceFolder1"
-                    reelName=$reelName1
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber/2		$sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-
-                    currentJobNumber=2
-                    sourceFolder="$sourceFolder2"
-                    reelName=$reelName2
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber/2		$sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-                fi
-
-                if [ $destinationNumber == 2 ]; then # Two Sources Two Destinations
-                    destinationFolder="$destinationFolder1"
-
-                    currentJobNumber=1
-                    sourceFolder="$sourceFolder1"
-                    reelName=$reelName1
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber/4		$sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-
-                    currentJobNumber=2
-                    sourceFolder="$sourceFolder2"
-                    reelName=$reelName2
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber/4		$sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-
-                    destinationFolder="$destinationFolder2"
-
-                    currentJobNumber=3
-                    sourceFolder="$sourceFolder1"
-                    reelName=$reelName1
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber/4		$sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-
-                    currentJobNumber=4
-                    sourceFolder="$sourceFolder2"
-                    reelName=$reelName2
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber/4		$sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-                fi
-            fi
+                done
+            done
 
             endTimeAllJobs=$(date +%s)
 
@@ -590,7 +531,11 @@ while [ true ]; do
             elapsedTimeFormatted=$(formatTime)
 
             echo
-            echo -e "${BOLD}$(($sourceNumber * $destinationNumber)) JOBS FINISHED IN $elapsedTimeFormatted"
+            if [ $jobNumber -eq 1 ]; then
+                echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted"
+            else
+                echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted"
+            fi
             echo
 
             echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
@@ -602,10 +547,13 @@ while [ true ]; do
             if [[ $quitFRC == "y" ]]; then command=0; fi
 
         else
+
             echo
             echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
         fi
+
     fi
+
     if [ $command == "2" ]; then editProject; fi
     if [ $command == "0" ]; then
         echo
