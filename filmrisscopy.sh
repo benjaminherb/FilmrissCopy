@@ -33,6 +33,7 @@ echo "PRESETS: 	"$scriptPath"/filmrisscopy_presets/"
 
 projectDate=$(date +"%Y%m%d")
 projectTime=$(date +"%H%M")
+verificationMode="xxhash"
 
 ## Define Project Settings
 setProjectName() {
@@ -130,6 +131,44 @@ setDestination() {
         fi
     done
 
+}
+
+## Choose Verification Method
+setVerificationMethod() {
+    echo
+    echo Choose your preferred Verification Method
+    echo "(0) EXIT  (1) XXHASH  (2) MD5  (3) SHA-1  (4) SIZE COMPARISON ONLY"
+    read -e verifCommand
+
+    if [[ ! $verifCommand == "0" ]] && [[ $verifCommand == "1" ]] && [[ $verifCommand == "2" ]] && [[ $verifCommand == "3" ]] && [[ $verifCommand == "4" ]]; then
+        setVerificationMethod
+    fi
+
+    if [ $verifCommand == "1" ]; then
+        verificationMode="xxhash"
+    elif [ $verifCommand == "2" ]; then
+        verificationMode="md5"
+    elif [ $verifCommand == "3" ]; then
+        verificationMode="sha"
+    elif [ $verifCommand == "4" ]; then
+        verificationMode="size"
+    fi
+}
+
+loadPreset() {
+    echo
+    echo "(0) BACK  (1) LOAD LAST PRESET  (2) LOAD PRESET FROM FILE"
+    read -e presetCommand
+
+    if [ ! $presetCommand == "0" ] && [ ! $presetCommand == "1" ] && [ ! $presetCommand == "2" ]; then loadPreset; fi
+
+    if [ $presetCommand == "1" ]; then
+        source "$scriptPath/filmrisscopy_preset_last.config"
+    elif [ $presetCommand == "2" ]; then
+        echo "Choose Preset Path"
+        read -e presetPath
+        source "$presetPath"
+    fi
 }
 
 ## Run the main Copy Process
@@ -271,7 +310,13 @@ checksum() {
     echo "CHECKSUM CALCULATIONS ON DESTINATION:" >>"$logfilePath"
     cd "$destinationFolderFullPath"
     checksumStatus &
-    (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec md5sum '{}' \; | tee md5sum.txt) >>"$logfilePath" 2>&1
+
+    if [ $verificationMode == "md5" ]; then
+        (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec md5sum '{}' \; | tee md5sum.txt) >>"$logfilePath" 2>&1
+    elif [ $verificationMode == "xxhash" ]; then
+        (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec xxhsum '{}' \; | tee xxhsum.txt) >>"$logfilePath" 2>&1
+    fi
+
     sleep 2
     kill $!
     echo
@@ -284,7 +329,12 @@ checksum() {
     cd "$sourceFolder"
     cd ..
     checksumComparisonStatus &
-    md5sum -c "$destinationFolderFullPath""/md5sum.txt" >>"$logfilePath" 2>&1
+
+    if [ $verificationMode == "md5" ]; then
+        md5sum -c "$destinationFolderFullPath""/md5sum.txt" >>"$logfilePath" 2>&1
+    elif [ $verificationMode == "xxhash" ]; then
+        xxhsum -c "$destinationFolderFullPath""/xxhsum.txt" >>"$logfilePath" 2>&1
+    fi
     sleep 2
     kill $!
     echo
@@ -304,7 +354,7 @@ checksumStatus() {
     while [[ true ]]; do
         sleep 1
 
-        checksumFileCount=$(wc -l "$destinationFolderFullPath"/md5sum.txt | cut --delimiter=" " -f1)
+        checksumFileCount=$(wc -l "$destinationFolderFullPath"/*sum.txt | cut --delimiter=" " -f1)
         currentTime=$(date +%s)
         elapsedTime=$(($currentTime - $checksumStartTime))
 
@@ -400,6 +450,21 @@ printStatus() {
         ((x++))
     done
 
+    case $verificationMode in
+    xxhash)
+        echo "${BOLD}VERIFICATION:${NORMAL}   xxHash"
+        ;;
+    md5)
+        echo "${BOLD}VERIFICATION:${NORMAL}   MD5"
+        ;;
+    sha)
+        echo "${BOLD}VERIFICATION:${NORMAL}   SHA-1"
+        ;;
+    size)
+        echo "${BOLD}VERIFICATION:${NORMAL}   size comparison only"
+        ;;
+    esac
+
 }
 
 ## Write preset_last.config
@@ -421,49 +486,19 @@ writePreset() {
     for dst in "${allDestinationFolders[@]}"; do # Loops over destination array prints all entrys
         echo "allDestinationFolders+=(\""$dst"\")"
     done
-}
 
-## Edit Project Loop
-editProject() {
-    loop=true
-    while [[ $loop == "true" ]]; do
-
-        statusMode="edit"
-        printStatus
-        statusMode="normal"
-
-        echo
-        echo "(0) EXIT SCREEN  (1) EDIT PROJECT NAME  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) EDIT DATE  (5) LOAD PRESET  (6) LOAD PRESET FROM FILE"
-        read -e editCommand
-
-        if [ $editCommand == "1" ]; then setProjectName; fi
-        if [ $editCommand == "2" ]; then setSource; fi
-        if [ $editCommand == "3" ]; then setDestination; fi
-        if [ $editCommand == "4" ]; then
-            echo "Input Date (Format: $projectDate)"
-            read -e projectDate
-        fi
-        if [ $editCommand == "5" ]; then source "$scriptPath/filmrisscopy_preset_last.config"; fi
-        if [ $editCommand == "6" ]; then
-            echo "Choose Preset Path"
-            read -e presetPath
-            source "$presetPath"
-        fi
-
-        if [ $editCommand == "0" ]; then loop="false"; fi
-    done
+    echo "verificationMode=xxhash"
 }
 
 ## Setup at Start
 startupSetup() {
+
     echo
     echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
     read -e usePreset
-    while [ ! $usePreset == "0" ] && [ ! $usePreset == "1" ] && [ ! $usePreset == "2" ] && [ ! $usePreset == "3" ]; do
-        echo
-        echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
-        read -e usePreset
-    done
+    if [ ! $usePreset == "0" ] && [ ! $usePreset == "1" ] && [ ! $usePreset == "2" ] && [ ! $usePreset == "3" ]; then
+        startupSetup
+    fi
 
     if [[ $usePreset == "1" ]]; then
         setProjectName
@@ -479,6 +514,32 @@ startupSetup() {
     fi
 }
 
+## Edit Project Loop
+editProject() {
+    loop=true
+    while [[ $loop == "true" ]]; do
+
+        statusMode="edit"
+        printStatus
+        statusMode="normal"
+
+        echo
+        echo "(0) BACK  (1) EDIT PROJECT NAME  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) EDIT DATE  (5) CHANGE VERIFICATION METHOD (6) LOAD PRESET"
+        read -e editCommand
+
+        if [ $editCommand == "1" ]; then setProjectName; fi
+        if [ $editCommand == "2" ]; then setSource; fi
+        if [ $editCommand == "3" ]; then setDestination; fi
+        if [ $editCommand == "4" ]; then
+            echo "Input Date (Format: $projectDate)"
+            read -e projectDate
+        fi
+        if [ $editCommand == "5" ]; then setVerificationMethod; fi
+        if [ $editCommand == "6" ]; then loadPreset; fi
+        if [ $editCommand == "0" ]; then loop="false"; fi
+    done
+}
+
 ## Base Loop
 startupSetup
 
@@ -488,7 +549,7 @@ while [ true ]; do
     printStatus
 
     echo
-    echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT"
+    echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP"
     read -e command
 
     if [ $command == "1" ]; then
@@ -532,9 +593,9 @@ while [ true ]; do
 
             echo
             if [ $jobNumber -eq 1 ]; then
-                echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted"
+                echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
             else
-                echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted"
+                echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
             fi
             echo
 
@@ -554,7 +615,16 @@ while [ true ]; do
 
     fi
 
-    if [ $command == "2" ]; then editProject; fi
+    if [ $command == "2" ]; then
+        editProject
+    fi
+
+    if [ $command == "3" ]; then
+        setProjectName
+        setSource
+        setDestination
+    fi
+
     if [ $command == "0" ]; then
         echo
         echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
@@ -582,4 +652,3 @@ done
 ## Default Preset
 ## Log Times of individual Tasks
 ## Change Loop Input Method
-## Implement Source / Destination Array
