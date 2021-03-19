@@ -136,7 +136,8 @@ setDestination() {
 ## Choose Verification Method
 setVerificationMethod() {
     echo
-    echo Choose your preferred Verification Method
+    echo "Choose your preferred Verification Method (xxHash is recommended)"
+    echo
     echo "(0) EXIT  (1) XXHASH  (2) MD5  (3) SHA-1  (4) SIZE COMPARISON ONLY"
     read -e verifCommand
 
@@ -267,10 +268,10 @@ run() {
     echo # End of the Job
     if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]]; then
         echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
-        sed -i "10 a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "11 a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
     else
         echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
-        sed -i "10 a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "11 a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
     fi
 
     sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
@@ -315,6 +316,8 @@ checksum() {
         (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec md5sum '{}' \; | tee md5sum.txt) >>"$logfilePath" 2>&1
     elif [ $verificationMode == "xxhash" ]; then
         (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec xxhsum '{}' \; | tee xxhsum.txt) >>"$logfilePath" 2>&1
+    elif [ $verificationMode == "sha" ]; then
+        (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec shasum '{}' \; | tee shasum.txt) >>"$logfilePath" 2>&1
     fi
 
     sleep 2
@@ -334,7 +337,10 @@ checksum() {
         md5sum -c "$destinationFolderFullPath""/md5sum.txt" >>"$logfilePath" 2>&1
     elif [ $verificationMode == "xxhash" ]; then
         xxhsum -c "$destinationFolderFullPath""/xxhsum.txt" >>"$logfilePath" 2>&1
+    elif [ $verificationMode == "sha" ]; then
+        shasum -c "$destinationFolderFullPath""/shasum.txt" >>"$logfilePath" 2>&1
     fi
+
     sleep 2
     kill $!
     echo
@@ -342,10 +348,10 @@ checksum() {
     checksumPassedFiles=$(grep -c ": OK" "$logfilePath") # Checks wether the output to the logfile were all "OK" or not
     if [[ $checksumPassedFiles == $totalFileCount ]]; then
         echo "${BOLD}NO CHECKSUM ERRORS!${NORMAL}"
-        sed -i "8 a NO CHECKSUM ERRORS!\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "9 a NO CHECKSUM ERRORS!\n" "$logfilePath" >/dev/null 2>&1
     else
         echo "${BOLD}$($RED)ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
-        sed -i "8 a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "9 a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" >/dev/null 2>&1
     fi
 }
 
@@ -406,13 +412,21 @@ log() {
     echo DESTINATION: $destinationFolderFullPath >>"$logfilePath"
     echo JOB: $currentJobNumber / $jobNumber >>"$logfilePath"
     echo RUNMODE: $runMode >>"$logfilePath"
+
+    if [ $verificationMode == "md5" ]; then
+        echo VERIFICATION: MD5 >>"$logfilePath"
+    elif [ $verificationMode == "xxhash" ]; then
+        echo VERIFICATION: xxHash >>"$logfilePath"
+    elif [ $verificationMode == "sha" ]; then
+        echo VERIFICATION: SHA-1 >>"$logfilePath"
+    fi
+
     echo >>"$logfilePath"
     echo THE COPY PROCESS WAS NOT COMPLETED CORRECTLY >>"$logfilePath" # Will be Deleted after the Job is finished
     echo >>"$logfilePath"
     cd "$sourceFolder"
     echo FOLDER STRUCTURE: >>"$logfilePath"
     find . ! -path . -type d >>"$logfilePath" # Print Folder Structure
-
 }
 
 ## Changes seconds to h:m:s, change $tempTime to use, and save the output in a variable
@@ -487,7 +501,7 @@ writePreset() {
         echo "allDestinationFolders+=(\""$dst"\")"
     done
 
-    echo "verificationMode=xxhash"
+    echo "verificationMode=$verificationMode"
 }
 
 ## Setup at Start
