@@ -31,6 +31,9 @@ echo "LOCATION:	"$scriptPath"/"
 echo "LOGFILES:	"$scriptPath"/filmrisscopy_logs/"
 echo "PRESETS: 	"$scriptPath"/filmrisscopy_presets/"
 
+tempFolder=""$scriptPath"/filmrisscopy_temp"
+mkdir -p $tempFolder #Temp folder for storing Hashfiles during a process (to be used again)
+
 projectDate=$(date +"%Y%m%d")
 projectTime=$(date +"%H%M")
 verificationMode="xxhash"
@@ -200,7 +203,7 @@ run() {
             echo "Run Checksum Calculations? (y/n)"
             read -e rerunChecksum
 
-            while [ ! $rerunChecksum == "y" ] && [ ! $rerunChecksum == "n" ]; do
+            while [ ! "$rerunChecksum" == "y" ] && [ ! "$rerunChecksum" == "n" ] && [ -z "$rerunChecksum" ]; do
                 echo "Run Checksum Calculations? (y/n)"
                 read -e rerunChecksum
             done
@@ -257,6 +260,16 @@ run() {
         echo
     fi
 
+    if [ $verificationMode == "md5" ]; then # Used in commands later (eg. to refer to the correct **sum.txt )
+        checksumUtility="md5sum"
+    elif [ $verificationMode == "xxhash" ]; then
+        checksumUtility="xxhsum"
+    elif [ $verificationMode == "sha" ]; then
+        checksumUtility="shasum"
+    fi
+
+    checksumFile=""$tempFolder"/"$checksumUtility"_"$reelName"" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
+
     checksum
 
     currentTime=$(date +%s)
@@ -306,40 +319,32 @@ copyStatus() {
 ## Checksum
 checksum() {
     checksumStartTime=$(date +%s)
-    echo "${BOLD}RUNNING CHECKSUM CALCULATIONS ON DESTINATION...${NORMAL}"
+    echo "${BOLD}RUNNING CHECKSUM CALCULATIONS ON SOURCE...${NORMAL}"
     echo >>"$logfilePath"
-    echo "CHECKSUM CALCULATIONS ON DESTINATION:" >>"$logfilePath"
-    cd "$destinationFolderFullPath"
+    echo "CHECKSUM CALCULATIONS ON SOURCE:" >>"$logfilePath"
+    cd "$sourceFolder"
+    logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Used for the Progress
+
     checksumStatus &
 
-    if [ $verificationMode == "md5" ]; then
-        (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec md5sum '{}' \; | tee md5sum.txt) >>"$logfilePath" 2>&1
-    elif [ $verificationMode == "xxhash" ]; then
-        (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec xxhsum '{}' \; | tee xxhsum.txt) >>"$logfilePath" 2>&1
-    elif [ $verificationMode == "sha" ]; then
-        (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec shasum '{}' \; | tee shasum.txt) >>"$logfilePath" 2>&1
-    fi
+    (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec $checksumUtility '{}' \; | tee "$checksumFile" >>"$logfilePath" 2>&1)
 
     sleep 2
     kill $!
     echo
 
     checksumStartTime=$(date +%s)
-    echo "${BOLD}COMPARING TO SOURCE...${NORMAL}"
+    echo "${BOLD}COMPARING CHECKSUM TO COPY...${NORMAL}"
     echo >>"$logfilePath"
-    echo "SOURCE COMPARISON:" >>"$logfilePath"
-    logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1)
-    cd "$sourceFolder"
-    cd ..
+    echo "COMPARING CHECKSUM TO COPY:" >>"$logfilePath"
+
+    logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Updated for the new Progress
+    cd "$destinationFolderFullPath"
+    cd "$(basename "$sourceFolder")" # Go into the copied source folder to get the same relative path for the checksum verification
+
     checksumComparisonStatus &
 
-    if [ $verificationMode == "md5" ]; then
-        md5sum -c "$destinationFolderFullPath""/md5sum.txt" >>"$logfilePath" 2>&1
-    elif [ $verificationMode == "xxhash" ]; then
-        xxhsum -c "$destinationFolderFullPath""/xxhsum.txt" >>"$logfilePath" 2>&1
-    elif [ $verificationMode == "sha" ]; then
-        shasum -c "$destinationFolderFullPath""/shasum.txt" >>"$logfilePath" 2>&1
-    fi
+    "$checksumUtility" -c "$checksumFile" >>"$logfilePath" 2>&1 # Command to verify using the checksumFile
 
     sleep 2
     kill $!
@@ -360,7 +365,7 @@ checksumStatus() {
     while [[ true ]]; do
         sleep 1
 
-        checksumFileCount=$(wc -l "$destinationFolderFullPath"/*sum.txt | cut --delimiter=" " -f1)
+        checksumFileCount=$(($(wc -l "$logfilePath" | cut --delimiter=" " -f1) - $logFileLineCount))
         currentTime=$(date +%s)
         elapsedTime=$(($currentTime - $checksumStartTime))
 
@@ -373,8 +378,7 @@ checksumStatus() {
         elapsedTimeFormatted=$(formatTime)
         timeTemp=$aproxTime
         aproxTimeFormatted=$(formatTime)
-
-        echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted"\\r
+        echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted\\r"
     done
 }
 
@@ -397,7 +401,7 @@ checksumComparisonStatus() {
         timeTemp=$aproxTime
         aproxTimeFormatted=$(formatTime)
 
-        echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $elapsedTimeFormatted"\\r
+        echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted\r"
     done
 }
 
@@ -666,3 +670,4 @@ done
 ## Default Preset
 ## Log Times of individual Tasks
 ## Change Loop Input Method
+## Calculate Source Checksum Once for all Destinations
