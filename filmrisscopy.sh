@@ -188,7 +188,7 @@ run() {
         return
     fi
 
-    destinationFolderFullPath="$destinationFolder""$projectName""/"$projectDate"_""$projectName""_"$reelName # Generate Full Path
+    destinationFolderFullPath="$destinationFolder""$projectName""/"$projectDate"_""$projectName""_"$reelName           # Generate Full Path
 
     if [[ ! -d "$destinationFolderFullPath" ]]; then # Check if the folder already exists, and creates the structure if needed
         mkdir -p "$destinationFolderFullPath"
@@ -245,18 +245,38 @@ run() {
     if [[ $runMode == "copy" ]]; then
         echo "${BOLD}RUNNING COPY...${NORMAL}"
         copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-        cp --recursive --verbose "$sourceFolder" "$destinationFolderFullPath" >>"$logfilePath" 2>&1
+        cp --archive --recursive --verbose "$sourceFolder" "$destinationFolderFullPath" >>"$logfilePath" 2>&1
+
         sleep 2
         kill $! # Copy then wait for the Status to catch up
         echo
     fi
 
-    if [[ $runMode == "rsync" ]]; then
+    if [[ $runMode == "copyParallel" ]]; then
+        echo "${BOLD}RUNNING PARALLEL COPY...${NORMAL}"
+
+        tempDest=""
+        for dest in "${allDestinationFolders[@]}"; do #create String with all Destinations
+            tempDest="$tempDest ""$dest"
+        done
+
+        copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
+
+        for src in "${allSourceFolders[@]}"; do
+            parallel -j0 -N1 cp --archive --recursive --verbose "$src" ::: "$tempDest" >>"$logfilePath" 2>&1
+        done
+
+        sleep 2
+        kill $! # Copy then wait for the Status to catch up
+        echo
+    fi
+
+    if [[ $runMode == "rsync" ]]; then # Needs Root, checks based on checksum Calculations
         sudo echo "${BOLD}RUNNING RSYNC...${NORMAL}"
         copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
         sudo rsync --verbose --checksum --archive "$sourceFolder" "$destinationFolderFullPath" >>"$logfilePath" 2>&1
         sleep 2
-        kill $! # Needs Root, checks based on checksum Calculations
+        kill $!
         echo
     fi
 
