@@ -188,7 +188,7 @@ run() {
         return
     fi
 
-    destinationFolderFullPath="$destinationFolder""$projectName""/"$projectDate"_""$projectName""_"$reelName           # Generate Full Path
+    destinationFolderFullPath="$destinationFolder""$projectName""/"$projectDate"_""$projectName""_"$reelName # Generate Full Path
 
     if [[ ! -d "$destinationFolderFullPath" ]]; then # Check if the folder already exists, and creates the structure if needed
         mkdir -p "$destinationFolderFullPath"
@@ -425,6 +425,25 @@ checksumComparisonStatus() {
     done
 }
 
+## Run Status
+
+runStatus() {
+    header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
+    table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
+
+    printf "$header" \
+        "" "COPY" "CSUM" "VALD" "SIZE" "FILES" "SOURCE" "DESTINATION"
+
+    printf "$table" \
+        "JOB 1" "DONE" "DONE" "85%" "15G" "1304" "/home/benny/Video/TEST" "/mnt/Projekt/SSD/" \
+        "JOB 2" "DONE" "DONE" "DONE" "15G" "1304" "/home/benny/Video" "/mnt/Projekt/HDD/" \
+        "JOB 3" "15%" "" "" "15G" "1304" "/mnt/Projekt/TEST2" "/mnt/Projekt/SSD/" \
+        "JOB 4" "DONE" "06%" "" "15G" "1304" "/mnt/Projekt/TEST2" "/mnt/Projekt/HDD/"
+
+    echo
+    echo
+}
+
 ## Log
 log() {
     logfile=$projectDate"_"$projectTime"_"$currentJobNumber"_"$jobNumber"_""$projectName""_filmrisscopy_log.txt"
@@ -604,7 +623,13 @@ while [ true ]; do
                 echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
             fi
 
+            dstAddPath="$projectName""/"$projectDate"_""$projectName""_"$reelName # Adding the New Path
+
             startTimeAllJobs=$(date +%s)
+
+            runStatus &
+
+            for dst in "$allDestinationFolders[@]}"; do echo "$dst/$dstAddPath "; done
 
             currentJobNumber=0
             reelNumber=0
