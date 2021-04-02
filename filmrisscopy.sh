@@ -4,7 +4,7 @@
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# any later version.
 
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -179,14 +179,6 @@ loadPreset() {
 run() {
     runMode=copy # Can be Copy, Checksum or RSync
     echo
-
-    totalByteSpace=$(du -s "$sourceFolder" | cut -f1) # Check if there is enough Space left
-    destinationFreeSpace=$(df --block-size=1 --output=avail "$destinationFolder" | cut -d$'\n' -f2)
-
-    if [[ $(($destinationFreeSpace - $totalByteSpace)) -lt 20 ]]; then
-        echo "$($RED)ERROR: NOT ENOUGH DISK SPACE LEFT IN $destinationFolder$($NC)"
-        return
-    fi
 
     destinationFolderFullPath="$destinationFolder""$projectName""/"$projectDate"_""$projectName""_"$reelName # Generate Full Path
 
@@ -426,7 +418,6 @@ checksumComparisonStatus() {
 }
 
 ## Run Status
-
 runStatus() {
     header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
     table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
@@ -598,113 +589,128 @@ editProject() {
 }
 
 ## Base Loop
-startupSetup
+baseLoop() {
+    while [ true ]; do
 
-while [ true ]; do
+        statusMode="normal" # choose how the Status will be shown (normal or edit)
+        printStatus
 
-    statusMode="normal" # choose how the Status will be shown (normal or edit)
-    printStatus
+        echo
+        echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP"
+        read -e command
 
-    echo
-    echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP"
-    read -e command
+        if [ $command == "1" ]; then
+            if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
 
-    if [ $command == "1" ]; then
-        if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
+                jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
 
-            jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
+                echo
+                echo
 
-            echo
-            echo
+                if [ $jobNumber -eq 1 ]; then
+                    echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
+                else
+                    echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
+                fi
 
-            if [ $jobNumber -eq 1 ]; then
-                echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
-            else
-                echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
-            fi
+                dstAddPath="$projectName""/"$projectDate"_""$projectName""_"$reelName # Adding the New Path
 
-            dstAddPath="$projectName""/"$projectDate"_""$projectName""_"$reelName # Adding the New Path
+                startTimeAllJobs=$(date +%s)
 
-            startTimeAllJobs=$(date +%s)
-
-            runStatus &
-
-            for dst in "$allDestinationFolders[@]}"; do echo "$dst/$dstAddPath "; done
-
-            currentJobNumber=0
-            reelNumber=0
-            for sourceFolder in "${allSourceFolders[@]}"; do # Loops over Source array for the Job Queue
-
-                reelName=${allReelNames[$reelNumber]}
-                ((reelNumber++))
-
-                for destinationFolder in "${allDestinationFolders[@]}"; do # Loops over Destination array for the Job Que
-                    ((currentJobNumber++))
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber / $jobNumber   $sourceFolder -> $destinationFolder${NORMAL}"
-                    run
+                # Check if there is enough Space left in all Destinations
+                totalCopySize=0
+                for src in "${allSourceFolders[@]}"; do
+                    totalCopySize=$(($totalCopySize + $(du --block-size=1 --summarize "$src" | cut -f1))) # Calculate total data size which will be copied
                 done
-            done
 
-            endTimeAllJobs=$(date +%s)
+                for dst in "${allDestinationFolders[@]}"; do
+                    destinationFreeSpace=$(df --block-size=1 --output=avail "$dst" | cut -d$'\n' -f2) # Calculate free space and format the output
+                    if [[ $(($destinationFreeSpace - $totalCopySize)) -lt 20 ]]; then
+                        echo "$($RED)ERROR: NOT ENOUGH DISK SPACE LEFT IN "$dst" ($totalCopySize Byte needed)$($NC)"
+                        baseLoop
+                    fi
+                done
 
-            elapsedTime=$(($endTimeAllJobs - $startTimeAllJobs))
+                echo $totalCopySize
+                baseLoop
+                runStatus &
 
-            timeTemp=$elapsedTime
-            elapsedTimeFormatted=$(formatTime)
+                for dst in "${allDestinationFolders[@]}"; do echo "$dst/$dstAddPath "; done
 
-            echo
-            if [ $jobNumber -eq 1 ]; then
-                echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
+                currentJobNumber=0
+                reelNumber=0
+
+                for sourceFolder in "${allSourceFolders[@]}"; do # Loops over Source array for the Job Queue / Each Source is copied in Parallel to all Destinations
+                    reelName=${allReelNames[$reelNumber]}
+                    ((reelNumber++))
+                    run
+                    ((currentJobNumber++))
+                done
+
+                endTimeAllJobs=$(date +%s)
+
+                elapsedTime=$(($endTimeAllJobs - $startTimeAllJobs))
+
+                timeTemp=$elapsedTime
+                elapsedTimeFormatted=$(formatTime)
+
+                echo
+                if [ $jobNumber -eq 1 ]; then
+                    echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
+                else
+                    echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
+                fi
+                echo
+
+                echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
+                read -e quitFRC
+                while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
+                    echo "Do you want to quit the Program? (y/n)"
+                    read -e quitFRC
+                done
+                if [[ $quitFRC == "y" ]]; then command=0; fi
+
             else
-                echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
+
+                echo
+                echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
+            fi
+
+        fi
+
+        if [ $command == "2" ]; then
+            editProject
+        fi
+
+        if [ $command == "3" ]; then
+            setProjectName
+            setSource
+            setDestination
+        fi
+
+        if [ $command == "0" ]; then
+            echo
+            echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
+            read -e overWriteLastPreset
+            while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
+                echo "Update last preset with the current Setup? (y/n)"
+                read -e overWriteLastPreset
+            done
+            if [[ $overWriteLastPreset == "y" ]]; then
+                writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
+                echo
+                echo "Preset Updated"
             fi
             echo
-
-            echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
-            read -e quitFRC
-            while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
-                echo "Do you want to quit the Program? (y/n)"
-                read -e quitFRC
-            done
-            if [[ $quitFRC == "y" ]]; then command=0; fi
-
-        else
-
-            echo
-            echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
+            exit
         fi
+    done
+}
 
-    fi
+## MAIN - Actually starts the program
 
-    if [ $command == "2" ]; then
-        editProject
-    fi
-
-    if [ $command == "3" ]; then
-        setProjectName
-        setSource
-        setDestination
-    fi
-
-    if [ $command == "0" ]; then
-        echo
-        echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
-        read -e overWriteLastPreset
-        while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
-            echo "Update last preset with the current Setup? (y/n)"
-            read -e overWriteLastPreset
-        done
-        if [[ $overWriteLastPreset == "y" ]]; then
-            writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
-            echo
-            echo "Preset Updated"
-        fi
-        echo
-        exit
-    fi
-done
+startupSetup
+baseLoop
 
 ## Add Copied Status
 ## Make Checksum Calculations in the Source folder first
