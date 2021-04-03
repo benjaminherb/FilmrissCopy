@@ -360,13 +360,15 @@ checksumComparisonStatus() {
 ## Run Status
 runStatus() {
 
+    printf '\e[?7l' # Disabling line wrapping
+    printf '\e[?25l' # Hide Cursor
+
     for ((i = 0; i < ${#allSourceFolders[@]}; i = i + 1)); do
         srcfileCount+=("$(find "${allSourceFolders[$i]}" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)")
         srcfileSize+=("$(du -msh "${allSourceFolders[$i]}" | cut -f1)")
     done
 
     while [[ true ]]; do
-        sleep 5
 
         header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
         table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
@@ -407,7 +409,9 @@ runStatus() {
 
             done
         done
-        echo -e "\e[$((${#allDestinationFoldersFullPath[@]} + 2))A\e[" # Resets the lines
+        printf '\e[$((${#allDestinationFoldersFullPath[@]} + 2))A' # Reset lines
+
+        sleep 3
 
     done
     printf "\n\n\n\n"
@@ -561,6 +565,7 @@ checkIfFolderExists() {
         fi
     fi
 
+
 }
 
 ## Write preset_last.config
@@ -638,6 +643,7 @@ editProject() {
 
 ## Base Loop
 baseLoop() {
+  printf '\e[?25l' # Hide Cursor
     while [ true ]; do
 
         statusMode="normal" # choose how the Status will be shown (normal or edit)
@@ -652,7 +658,6 @@ baseLoop() {
 
                 jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
 
-                echo
                 echo
 
                 if [ $jobNumber -eq 1 ]; then
@@ -685,12 +690,20 @@ baseLoop() {
                         checkIfFolderExists
                     done
                     run &
+                    ALL_PID+=("$!")
+
+                done
+                runStatus &
+
+                for pid in ${ALL_PID[@]} ; do # Wait for all Copy Processes to finish before the last one (runStatus) is killed
+                    wait $pid
                 done
 
-                runStatus
-
-                sleep 2
+                sleep 3 # wait for runProgress to finish
                 kill $!
+
+                printf '\e[?25h' # Show Cursor Again
+                printf '\e[?7h' # Enable Line wrapping again
 
                 echo
                 echo
@@ -704,6 +717,8 @@ baseLoop() {
                 elapsedTimeFormatted=$(formatTime)
 
                 echo
+                echo
+
                 if [ $jobNumber -eq 1 ]; then
                     echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
                 else
@@ -762,7 +777,6 @@ startupSetup
 baseLoop
 
 ## Add Copied Status
-## Make Checksum Calculations in the Source folder first
 ## Option for different Algorithms (XXHASH, SHA-1) + Option for no verification
 ## MHL Implementation
 ## Implement Telegram Bot
@@ -772,3 +786,4 @@ baseLoop
 ## Change Loop Input Method
 ## Calculate Source Checksum Once for all Destinations
 ## Parallel is a Dependency -> CHECK
+## On Inputs/Destinations add a trailing / if needed
