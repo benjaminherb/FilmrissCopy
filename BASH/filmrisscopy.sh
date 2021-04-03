@@ -49,7 +49,10 @@ setProjectName() {
     read -e projectName
 }
 
-## Choose Ssource Directoryot -name
+#######################################
+# Choose Source Directory and Reel Name for each Source
+# Outputs a Source Array and a Reel Name Array
+#######################################
 setSource() {
     echo
     echo Choose Source Folder:
