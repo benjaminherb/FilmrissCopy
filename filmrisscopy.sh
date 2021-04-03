@@ -185,7 +185,7 @@ run() {
         log # Create Log File and Write Header
     done
 
-    logfilePath="$tempFolder"/$projectDate"_"$projectTime"_"$i"_""$projectName""_filmrisscopy_log.txt"
+    logfilePath="$tempFolder"/$projectDate"_"$projectTime"_"$projectName"_"$reelName"_filmrisscopy_log.txt"
 
     totalFileCount=$(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)
     totalFileSize=$(du -msh "$sourceFolder" | cut -f1)
@@ -197,30 +197,19 @@ run() {
 
         sleep 2
         kill $! # Copy then wait for the Status to catch up
-        echo
     fi
 
     if [[ $runMode == "copy" ]]; then
         printf "\n## COPY\n" >>"$logfilePath"
         parallel -j0 -N1 --linebuffer --tagstring {} cp --recursive --verbose "$sourceFolder" ::: ${allDestinationFoldersFullPath[*]} >>"$logfilePath" 2>&1
-        echo
     fi
 
     if [[ $runMode == "rsync" ]]; then # Needs Root, checks based on checksum Calculations
         printf "\n## COPY\n" >>"$logfilePath"
         sudo parallel -j0 -N1 --linebuffer --tagstring {} rsync --verbose --checksum --archive "$sourceFolder" ::: ${allDestinationFoldersFullPath[*]} >>"$logfilePath" 2>&1
-        echo
     fi
 
-    if [ $verificationMode == "md5" ]; then # Used in commands later (eg. to refer to the correct **sum.txt )
-        checksumUtility="md5sum"
-    elif [ $verificationMode == "xxhash" ]; then
-        checksumUtility="xxhsum"
-    elif [ $verificationMode == "sha" ]; then
-        checksumUtility="shasum"
-    fi
-
-    checksumFile="$tempFolder/$checksumUtility_$projectDate_$projectTime_$projectName_$reelName" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
+    checksumFile="$tempFolder"/"$checksumUtility"_"$projectDate"_"$projectTime"_"$projectName"_"$reelName" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
 
     printf "\n## CHECKSUM CALCULATION\n" >>"$logfilePath"
     checksumSource
@@ -239,18 +228,18 @@ run() {
 
         checksumPassedFiles=$(grep -c ": OK" "$dst/$logfile") # Checks wether the output to the logfile were all "OK" or not
         if [[ $checksumPassedFiles == $(($totalFileCount)) ]]; then
-            echo "${BOLD}NO CHECKSUM ERRORS!${NORMAL}"
+            #echo "${BOLD}NO CHECKSUM ERRORS!${NORMAL}"
             sed -i "9 a NO CHECKSUM ERRORS!\n" "$dst/$logfile" >/dev/null 2>&1
         else
-            echo "${BOLD}$($RED)ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
+            #echo "${BOLD}$($RED)ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
             sed -i "9 a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$dst/$logfile" >/dev/null 2>&1
         fi
 
         if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]]; then
-            echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
+            #echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
             sed -i "11 a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$dst/$logfile" >/dev/null 2>&1
         else
-            echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
+            #echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
             sed -i "11 a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$dst/$logfile" >/dev/null 2>&1
         fi
 
@@ -375,42 +364,46 @@ runStatus() {
     done
 
     while [[ true ]]; do
-        sleep 5
-
-        tempLogfilePath="$tempFolder"/$projectDate"_"$projectTime"_"$i"_""$projectName""_filmrisscopy_log.txt"
-        tempChecksumFile="$tempFolder/$checksumUtility_$projectDate_$projectTime_$projectName_$reelName" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
+        sleep 3
 
         header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
         table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
 
         printf "$header" \
-            "" "COPY" "CSUM" "VALD" "SIZE" "FILES" "SOURCE" "DESTINATION"
+            "" "COPY" "CSUM" "VALD" "FILES" "SIZE" "SOURCE" "DESTINATION"
 
         for ((x = 0; x < ${#allSourceFolders[@]}; x = x + 1)); do
+
+            tempLogfilePath=""$tempFolder"/"$projectDate"_"$projectTime"_"$projectName"_"${allReelNames[$x]}"_filmrisscopy_log.txt"
+            tempChecksumFile=""$tempFolder"/"$checksumUtility"_"$projectDate"_"$projectTime"_"$projectName"_"${allReelNames[$x]}"" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
 
             for dst in ${allDestinationFoldersFullPath[@]}; do
 
                 if [[ -f "$tempLogfilePath" ]]; then
-                    copyProgress=$(sed -n '/## COPY/,/## CHECKSUM CALCULATION/p' "$tempLogfilePath" | grep -G "$dst*" | cut -f2- | wc -l | cut --delimiter=" " -f1)
+                    #copyProgress=$(sed -n '/## COPY/,/## CHECKSUM CALCULATION/p' "$tempLogfilePath" | grep -G "$dst*" | cut -f2- | wc -l | cut --delimiter=" " -f1)
+                    copyProgress=$(find "$dst" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)
+
                     validProgress=$(sed -n '/## COMPARING CHECKSUM TO COPY/,//p' "$tempLogfilePath" | grep -G "$dst*" | cut -f2- | wc -l | cut --delimiter=" " -f1)
                 else
-                    copyProgress=""
-                    validProgress=""
+                    copyProgress="0"
+                    validProgress="0"
                 fi
 
                 if [[ -f "$tempChecksumFile" ]]; then
                     checksumProgress=$(wc -l "$tempChecksumFile" | cut --delimiter=" " -f1)
                 else
-                    checksumProgress=""
+                    checksumProgress="0"
                 fi
 
                 printf "$table" \
-                    "JOB" "$copyProgress" "$checksumProgress" "$validProgress" "${srcfileCount[$x]}" "${srcfileSize[$x]}" "$src" "$dst"
+                    "JOB $x" "$copyProgress" "$checksumProgress" "$validProgress" "${srcfileCount[$x]}" "${srcfileSize[$x]}" "$src" "$dst"
 
             done
         done
-        echo
+        echo -e '\e[4A\e[' # Resets the lines t
+
     done
+    printf "\n\n\n\n"
 }
 
 ## Log
@@ -661,6 +654,14 @@ baseLoop() {
                     echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
                 fi
 
+                if [ $verificationMode == "md5" ]; then # Used in commands later (eg. to refer to the correct **sum.txt )
+                    checksumUtility="md5sum"
+                elif [ $verificationMode == "xxhash" ]; then
+                    checksumUtility="xxhsum"
+                elif [ $verificationMode == "sha" ]; then
+                    checksumUtility="shasum"
+                fi
+
                 startTimeAllJobs=$(date +%s)
 
                 checkIfThereIsEnoughSpaceLeft # Check if there is enough Space left in all Destinations
@@ -684,6 +685,10 @@ baseLoop() {
 
                 sleep 2
                 kill $!
+
+                echo
+                echo
+                echo
 
                 endTimeAllJobs=$(date +%s)
 
