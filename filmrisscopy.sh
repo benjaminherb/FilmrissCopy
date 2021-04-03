@@ -359,12 +359,12 @@ checksumComparisonStatus() {
 runStatus() {
 
     for ((i = 0; i < ${#allSourceFolders[@]}; i = i + 1)); do
-        srcfileCount+=("$(find "$src" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)")
-        srcfileSize+=("$(du -msh "$src" | cut -f1)")
+        srcfileCount+=("$(find "${allSourceFolders[$i]}" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)")
+        srcfileSize+=("$(du -msh "${allSourceFolders[$i]}" | cut -f1)")
     done
 
     while [[ true ]]; do
-        sleep 3
+        sleep 5
 
         header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
         table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
@@ -372,12 +372,16 @@ runStatus() {
         printf "$header" \
             "" "COPY" "CSUM" "VALD" "FILES" "SIZE" "SOURCE" "DESTINATION"
 
-        for ((x = 0; x < ${#allSourceFolders[@]}; x = x + 1)); do
+        JOB=0
 
-            tempLogfilePath=""$tempFolder"/"$projectDate"_"$projectTime"_"$projectName"_"${allReelNames[$x]}"_filmrisscopy_log.txt"
-            tempChecksumFile=""$tempFolder"/"$checksumUtility"_"$projectDate"_"$projectTime"_"$projectName"_"${allReelNames[$x]}"" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
+        for ((statusX = 0; statusX < ${#allSourceFolders[@]}; statusX = statusX + 1)); do
 
-            for dst in ${allDestinationFoldersFullPath[@]}; do
+            tempLogfilePath=""$tempFolder"/"$projectDate"_"$projectTime"_"$projectName"_"${allReelNames[$statusX]}"_filmrisscopy_log.txt"
+            tempChecksumFile=""$tempFolder"/"$checksumUtility"_"$projectDate"_"$projectTime"_"$projectName"_"${allReelNames[$statusX]}"" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
+            src=${allSourceFolders[$statusX]}
+
+            for ((statusY = 0; statusY < ${#allDestinationFolders[@]}; statusY = statusY + 1)); do
+                dst=${allDestinationFoldersFullPath[$JOB]}
 
                 if [[ -f "$tempLogfilePath" ]]; then
                     #copyProgress=$(sed -n '/## COPY/,/## CHECKSUM CALCULATION/p' "$tempLogfilePath" | grep -G "$dst*" | cut -f2- | wc -l | cut --delimiter=" " -f1)
@@ -396,11 +400,12 @@ runStatus() {
                 fi
 
                 printf "$table" \
-                    "JOB $x" "$copyProgress" "$checksumProgress" "$validProgress" "${srcfileCount[$x]}" "${srcfileSize[$x]}" "$src" "$dst"
+                    "JOB $(($JOB + 1))" "$copyProgress" "$checksumProgress" "$validProgress" "${srcfileCount[$statusX]}" "${srcfileSize[$statusX]}" "$src" "$dst"
+                ((JOB++))
 
             done
         done
-        echo -e '\e[4A\e[' # Resets the lines t
+        echo -e "\e[$((${#allDestinationFoldersFullPath[@]} + 2))A\e[" # Resets the lines
 
     done
     printf "\n\n\n\n"
@@ -677,11 +682,10 @@ baseLoop() {
                         allDestinationFoldersFullPath+=("$dst")
                         checkIfFolderExists
                     done
-                    echo "${allDestinationFoldersFullPath[*]}"
-                    runStatus &
-                    run
-
+                    run &
                 done
+
+                runStatus
 
                 sleep 2
                 kill $!
