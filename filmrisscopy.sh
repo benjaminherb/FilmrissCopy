@@ -22,7 +22,9 @@ NC='tput sgr0' # no color
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
-echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
+VERSION="FILMRISSCOPY VERSION 0.1.1"
+
+echo "${BOLD}"$VERSION"${NORMAL}"
 echo
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
 echo "LAST UPDATED:	$(date -r "$scriptPath")"
@@ -416,7 +418,7 @@ log() {
 
     logfile=$projectDate"_"$projectTime"_""$projectName""_filmrisscopy_log.txt"
     logfilePath="$dst/$logfile"
-    echo FILMRISSCOPY VERSION 0.1 >>"$logfilePath"
+    echo "$VERSION" >>"$logfilePath"
     echo PROJECT NAME: $projectName >>"$logfilePath"
     echo DATE/TIME: $projectDate"_"$projectTime >>"$logfilePath"
     echo SOURCE: $sourceFolder >>"$logfilePath"
@@ -454,7 +456,7 @@ formatTime() {
 printStatus() {
     echo
     if [[ $statusMode == "normal" ]]; then
-        echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
+        echo "${BOLD}"$VERSION"${NORMAL}"
     fi
 
     if [[ $statusMode == "edit" ]]; then
@@ -769,3 +771,4 @@ baseLoop
 ## Log Times of individual Tasks
 ## Change Loop Input Method
 ## Calculate Source Checksum Once for all Destinations
+## Parallel is a Dependency -> CHECK
