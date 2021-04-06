@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # filmrissCopy Version 0.2
 
 # FilmrissCopy is a program for copying and verifying video / audio files for
@@ -17,10 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import npyscreen
 import os
 from datetime import datetime
 
-# SETUP
+
 VERSION = "FILMRISSCOPY VERSION 0.2"
 FILMRISSCOPY_PATH = os.path.dirname(__file__)
 FILMRISSCOPY_LOGS_PATH = FILMRISSCOPY_PATH + "/filmrisscopy_logs"
@@ -28,14 +31,40 @@ FILMRISSCOPY_TEMP_PATH = FILMRISSCOPY_PATH + "/filmrisscopy_temp"
 DATE = datetime.now().date()
 TIME = datetime.now().time()
 
-if not os.path.exists(FILMRISSCOPY_LOGS_PATH):
-    os.makedirs(FILMRISSCOPY_LOGS_PATH)
 
-if not os.path.exists(FILMRISSCOPY_TEMP_PATH):
-    os.makedirs(FILMRISSCOPY_TEMP_PATH)
+class locationForm(npyscreen.Form):
+    def create(self):
+        self.newSource = self.add(npyscreen.TitleFilenameCombo, name="Source 1", value="/mnt/", begin_entry_at=12)
 
-print(VERSION)
-print("LOCATION:    " + FILMRISSCOPY_PATH)
-print("LOGS:        " + FILMRISSCOPY_LOGS_PATH)
-print(DATE)
-print(TIME)
+        #newSource = self.add(npyscreen.TitleFilenameCombo, name=self.name)
+        #newSource = self.add(npyscreen.TitleFilenameCombo, name=self.name)
+
+
+    def afterEditing(self):
+        self.parentApp.setNextForm(None)
+
+
+
+class fcForm(npyscreen.Form):
+    def create(self):
+        self.projectWidget = self.add(npyscreen.TitleText, name="PROJECT", begin_entry_at=12)
+        self.dateWidget = self.add(npyscreen.TitleDateCombo,name="DATE", value=DATE, begin_entry_at=12)
+        self.timeWidget = self.add(npyscreen.TitleFixedText,name="TIME", value=TIME, begin_entry_at=12)
+        self.checksumWidget = self.add(npyscreen.TitleSelectOne,name="CHECKSUM",values=["xxHash (preferred)", "MD5", "SHA-1", "Size Only"], begin_entry_at=12)
+
+
+    def afterEditing(self):
+        self.parentApp.setNextForm('Source')
+
+
+class fcApp(npyscreen.NPSAppManaged):
+    def onStart(self):
+        self.addForm('MAIN', fcForm, name=VERSION)
+        self.addForm('Source', locationForm, name="Choose Source")
+        self.addForm('Destination', locationForm, name="Choose Destination")
+
+
+
+
+if __name__ == '__main__':
+    app = fcApp().run()
