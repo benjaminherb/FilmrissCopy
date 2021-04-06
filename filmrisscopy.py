@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import Theme
 import npyscreen
 import os
 from datetime import datetime
@@ -32,25 +33,43 @@ DATE = datetime.now().date()
 TIME = datetime.now().time()
 
 
-class locationForm(npyscreen.Form):
+class locationWidget(npyscreen.TitleFilenameCombo):
     def create(self):
-        self.newSource = self.add(npyscreen.TitleFilenameCombo, name="Source 1", value="/mnt/", begin_entry_at=12)
+        pass
 
-        #newSource = self.add(npyscreen.TitleFilenameCombo, name=self.name)
-        #newSource = self.add(npyscreen.TitleFilenameCombo, name=self.name)
-
-
-    def afterEditing(self):
-        self.parentApp.setNextForm(None)
-
+    def when_value_edited(self):
+        fcForm.source[1].hidden=False
 
 
 class fcForm(npyscreen.Form):
     def create(self):
-        self.projectWidget = self.add(npyscreen.TitleText, name="PROJECT", begin_entry_at=12)
-        self.dateWidget = self.add(npyscreen.TitleDateCombo,name="DATE", value=DATE, begin_entry_at=12)
-        self.timeWidget = self.add(npyscreen.TitleFixedText,name="TIME", value=TIME, begin_entry_at=12)
-        self.checksumWidget = self.add(npyscreen.TitleSelectOne,name="CHECKSUM",values=["xxHash (preferred)", "MD5", "SHA-1", "Size Only"], begin_entry_at=12)
+
+        self.projectWidget = self.add(npyscreen.TitleText, name="PROJECT", begin_entry_at=16)
+        self.projectDay = self.add(npyscreen.TitleText, name="PROD. DAY", value="DT01", begin_entry_at=16)
+
+        self.dateWidget = self.add(npyscreen.TitleDateCombo,name="DATE", value=DATE, begin_entry_at=16)
+        self.timeWidget = self.add(npyscreen.TitleFixedText,name="TIME", value=TIME, begin_entry_at=16, editable=False)
+
+        self.nextrely +=1
+
+        self.source=[None]*3
+
+        self.source[0] = self.add(npyscreen.TitleFilenameCombo, name="SOURCE 1",  begin_entry_at=16)
+        self.source[1] = self.add(npyscreen.TitleFilename, name="SOURCE 2",  begin_entry_at=16)
+        self.source[2] = self.add(npyscreen.TitleFilenameCombo, name="SOURCE 3",  begin_entry_at=16)
+
+        self.nextrely +=1
+
+        self.destination=[None]*3
+        self.destination[0] = self.add(npyscreen.TitleFilenameCombo, name="DESTINATION 1", begin_entry_at=16)
+        self.destination[1] = self.add(npyscreen.TitleFilenameCombo, name="DESTINATION 2", begin_entry_at=16)
+        self.destination[2] = self.add(npyscreen.TitleFilenameCombo, name="DESTINATION 3", begin_entry_at=16)
+
+        self.nextrely +=1
+
+        self.checksumWidget = self.add(npyscreen.TitleSelectOne,name="CHECKSUM",values=["xxHash (preferred)", "MD5", "SHA-1", "Size Only"], begin_entry_at=16, scroll_exit=True)
+
+
 
 
     def afterEditing(self):
@@ -59,9 +78,10 @@ class fcForm(npyscreen.Form):
 
 class fcApp(npyscreen.NPSAppManaged):
     def onStart(self):
+        Theme.filmrissCopyTheme()
         self.addForm('MAIN', fcForm, name=VERSION)
-        self.addForm('Source', locationForm, name="Choose Source")
-        self.addForm('Destination', locationForm, name="Choose Destination")
+    #    self.addForm('Source', locationForm, name="Choose Source")
+    #    self.addForm('Destination', locationForm, name="Choose Destination")
 
 
 
