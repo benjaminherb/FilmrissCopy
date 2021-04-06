@@ -70,8 +70,6 @@ class fcForm(npyscreen.Form):
         self.checksumWidget = self.add(npyscreen.TitleSelectOne,name="CHECKSUM",values=["xxHash (preferred)", "MD5", "SHA-1", "Size Only"], begin_entry_at=16, scroll_exit=True)
 
 
-
-
     def afterEditing(self):
         self.parentApp.setNextForm('Source')
 
