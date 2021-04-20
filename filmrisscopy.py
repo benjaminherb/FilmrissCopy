@@ -19,11 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import Theme
-import npyscreen
 import os
 from datetime import datetime
-
+import Theme
+import npyscreen
 
 VERSION = "FILMRISSCOPY VERSION 0.2"
 FILMRISSCOPY_PATH = os.path.dirname(__file__)
@@ -67,7 +66,7 @@ class fcForm(npyscreen.Form):
 
         self.nextrely +=1
 
-        self.checksumWidget = self.add(npyscreen.TitleSelectOne,name="CHECKSUM",values=["xxHash (preferred)", "MD5", "SHA-1", "Size Only"], begin_entry_at=16, scroll_exit=True)
+        self.checksumWidget = self.add(npyscreen.TitleSelectOne, name="CHECKSUM", values=["xxHash (preferred)", "MD5", "SHA-1", "Size Only"], begin_entry_at=16, scroll_exit=True)
 
 
     def afterEditing(self):
@@ -80,7 +79,6 @@ class fcApp(npyscreen.NPSAppManaged):
         self.addForm('MAIN', fcForm, name=VERSION)
     #    self.addForm('Source', locationForm, name="Choose Source")
     #    self.addForm('Destination', locationForm, name="Choose Destination")
-
 
 
 
