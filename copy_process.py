@@ -3,11 +3,16 @@ import shutil
 import time
 from contextlib import ExitStack
 
-# https://stackoverflow.com/questions/39623222/copying-a-file-to-multiple-paths-at-the-same-time
-# https://stackoverflow.com/questions/9104040/python-what-is-the-fastest-way-i-can-copy-files-from-a-source-folder-to-multip
-# https://stackoverflow.com/questions/2212643/python-recursive-folder-read/2212698#2212698
 
 def copy (src, destinations):
+    chunks_read = 0;
+    source_size = calculateSize(src)
+    source_chunks = ( source_size * len(destinations) ) / read_buffer_size
+
+    print("SIZE: %d" % source_size)
+    print("CHUNKS: %d" % source_chunks)
+
+
     for root, src_subdirs, files in os.walk(src):
 
         for filename in files:
@@ -29,7 +34,18 @@ def copy (src, destinations):
 
                         for dstFile in destination_files:
                             dstFile.write(data)
+                            chunks_read += 1
 
+                        if (chunks_read % 1000 == 0):
+                            progress = (chunks_read / source_chunks) * 100
+                            print("PROGRESS: %.2f%%" % progress, end='\r')
+
+
+                    #for dst in destination_filenames:
+                        # print("COPIED: " + source_file + " -> " + dst)
+    print("PROGRESS: %.2f%%" % 100, end='\r')
+    print()
+    print("CHUNKS READ: %d" % chunks_read)
 
 
 
@@ -53,14 +69,23 @@ def mirrorFolderStructure (src, destinations):
                     print(newDir + " does already exits!")
 
 
+def calculateSize(dir):
+    size = 0
+
+    for path, dirs, files in os.walk(dir):
+        for f in files:
+            fp = os.path.join(path, f)
+            size += os.path.getsize(fp)
+    return size
 
 
-src = '/mnt/Projekt/TEST'
-destinations = ['/mnt/Daten/Test/PYTHON','/home/benny/Videos/Test/PYTHON']
-read_buffer_size = 65_536
+if __name__ == '__main__':
+    src = '/mnt/Projekt/TEST'
+    destinations = ['/mnt/Daten/Test/PYTHON','/home/benny/Videos/Test/PYTHON']
+    read_buffer_size = 65_536
 
-mirrorFolderStructure(src, destinations)
-copy(src, destinations)
+    mirrorFolderStructure(src, destinations)
+    copy(src, destinations)
 
-# print(copy)
-print("DONE")
+    # print(copy)
+    print("DONE")
