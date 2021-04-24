@@ -37,37 +37,48 @@ class locationWidget(npyscreen.TitleFilenameCombo):
         pass
 
     def when_value_edited(self):
-        fcForm.source[1].hidden=False
+        fcForm.source[1].hidden = False
 
 
 class fcForm(npyscreen.Form):
     def create(self):
 
-        self.projectWidget = self.add(npyscreen.TitleText, name="PROJECT", begin_entry_at=16)
-        self.projectDay = self.add(npyscreen.TitleText, name="PROD. DAY", value="DT01", begin_entry_at=16)
+        self.projectWidget = self.add(npyscreen.TitleText,
+                                      name="PROJECT", begin_entry_at=16)
+        self.projectDay = self.add(npyscreen.TitleText,
+                                   name="PROD. DAY", value="DT01", begin_entry_at=16)
 
-        self.dateWidget = self.add(npyscreen.TitleDateCombo,name="DATE", value=DATE, begin_entry_at=16)
-        self.timeWidget = self.add(npyscreen.TitleFixedText,name="TIME", value=TIME, begin_entry_at=16, editable=False)
+        self.dateWidget = self.add(npyscreen.TitleDateCombo,
+                                   name="DATE", value=DATE, begin_entry_at=16)
+        self.timeWidget = self.add(npyscreen.TitleFixedText,
+                                   name="TIME", value=TIME, begin_entry_at=16, editable=False)
 
-        self.nextrely +=1
+        self.nextrely += 1
 
-        self.source=[None]*3
+        self.source = [None] * 3
 
-        self.source[0] = self.add(npyscreen.TitleFilenameCombo, name="SOURCE 1",  begin_entry_at=16)
-        self.source[1] = self.add(npyscreen.TitleFilename, name="SOURCE 2",  begin_entry_at=16)
-        self.source[2] = self.add(npyscreen.TitleFilenameCombo, name="SOURCE 3",  begin_entry_at=16)
+        self.source[0] = self.add(npyscreen.TitleFilenameCombo,
+                                  name="SOURCE 1",  begin_entry_at=16)
+        self.source[1] = self.add(npyscreen.TitleFilename,
+                                  name="SOURCE 2",  begin_entry_at=16)
+        self.source[2] = self.add(npyscreen.TitleFilenameCombo,
+                                  name="SOURCE 3",  begin_entry_at=16)
 
-        self.nextrely +=1
+        self.nextrely += 1
 
-        self.destination=[None]*3
-        self.destination[0] = self.add(npyscreen.TitleFilenameCombo, name="DESTINATION 1", begin_entry_at=16)
-        self.destination[1] = self.add(npyscreen.TitleFilenameCombo, name="DESTINATION 2", begin_entry_at=16)
-        self.destination[2] = self.add(npyscreen.TitleFilenameCombo, name="DESTINATION 3", begin_entry_at=16)
+        self.destination = [None] * 3
+        self.destination[0] = self.add(npyscreen.TitleFilenameCombo,
+                                       name="DESTINATION 1", begin_entry_at=16)
+        self.destination[1] = self.add(npyscreen.TitleFilenameCombo,
+                                       name="DESTINATION 2", begin_entry_at=16)
+        self.destination[2] = self.add(npyscreen.TitleFilenameCombo,
+                                       name="DESTINATION 3", begin_entry_at=16)
 
-        self.nextrely +=1
+        self.nextrely += 1
 
-        self.checksumWidget = self.add(npyscreen.TitleSelectOne, name="CHECKSUM", values=["xxHash (preferred)", "MD5", "SHA-1", "Size Only"], begin_entry_at=16, scroll_exit=True)
-
+        self.checksumWidget = self.add(npyscreen.TitleSelectOne, name="CHECKSUM",
+                                       values=["xxHash (preferred)", "MD5", "SHA-1", "Size Only"],
+                                       begin_entry_at=16, scroll_exit=True)
 
     def afterEditing(self):
         self.parentApp.setNextForm('Source')
@@ -79,7 +90,6 @@ class fcApp(npyscreen.NPSAppManaged):
         self.addForm('MAIN', fcForm, name=VERSION)
     #    self.addForm('Source', locationForm, name="Choose Source")
     #    self.addForm('Destination', locationForm, name="Choose Destination")
-
 
 
 if __name__ == '__main__':
