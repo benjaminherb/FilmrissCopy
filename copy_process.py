@@ -88,8 +88,8 @@ def calculateSize(dir):
 
 
 if __name__ == '__main__':
-    src = '/mnt/Projekt/TEST'
-    destinations = ['/mnt/Daten/Test/PYTHON', '/home/benny/Videos/Test/PYTHON']
+    src = '/mnt/Video/Test/Python/Test'
+    destinations = ['/mnt/Daten/Test/PYTHON', '/home/benny/Videos/Test/PYTHON', '/mnt/Projekt/Test/Python']
     read_buffer_size = 65_536
 
     mirrorFolderStructure(src, destinations)
