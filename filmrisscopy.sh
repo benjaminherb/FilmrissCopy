@@ -34,7 +34,7 @@ echo "PRESETS: 	"$scriptPath"/filmrisscopy_presets/"
 tempFolder=""$scriptPath"/filmrisscopy_temp"
 mkdir -p $tempFolder #Temp folder for storing Hashfiles during a process (to be used again)
 
-projectDate=$(date +"%Y%m%d")
+dateNow=$(date +"%Y%m%d")
 timeNow=$(date +"%H%M")
 verificationMode="xxhash"
 
@@ -45,11 +45,16 @@ setProjectInfo() {
     read -e projectName
 
     echo
-    echo "Choose Shoot Date"
+    echo "Choose Shoot Date [Default: $dateNow]"
     read -e projectDate
 
+    if [ -z "$projectDate" ]; then
+        projectDate=$dateNow
+        echo $dateNow
+    fi
+
     echo
-    echo "Name Shoot Day"
+    echo "Name Shoot Day [eg. DT01]"
     read -e projectShootDay
 }
 
@@ -500,8 +505,8 @@ printStatus() {
     fi
 
     echo "${BOLD}PROJECT NAME:${NORMAL}	$projectName"
+    echo "${BOLD}SHOOT DAY:${NORMAL}	$projectShootDay"
     echo "${BOLD}DATE:	${NORMAL}	$projectDate"
-    echo "${BOLD}TIME:	${NORMAL}	$timeNow"
 
     x=0
     for src in "${allSourceFolders[@]}"; do # Loops over source array prints all entrys
@@ -537,6 +542,8 @@ writePreset() {
 
     echo "## FILMRISSCOPY PRESET"
     echo "projectName=$projectName"
+    echo "projectShootDay=$projectShootDay"
+    echo "projectDate=$projectDate"
     echo "allSourceFolders=()"
     echo "allReelNames=()"
     echo "allDestinationFolders=()"
@@ -589,20 +596,79 @@ editProject() {
         statusMode="normal"
 
         echo
-        echo "(0) BACK  (1) EDIT PROJECT NAME  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) EDIT DATE  (5) CHANGE VERIFICATION METHOD (6) LOAD PRESET"
+        echo "(0) BACK  (1) EDIT PROJECT INFO  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) CHANGE VERIFICATION METHOD (5) LOAD PRESET"
         read -e editCommand
 
         if [ $editCommand == "1" ]; then setProjectInfo; fi
         if [ $editCommand == "2" ]; then setSource; fi
         if [ $editCommand == "3" ]; then setDestination; fi
-        if [ $editCommand == "4" ]; then
-            echo "Input Date (Format: $projectDate)"
-            read -e projectDate
-        fi
-        if [ $editCommand == "5" ]; then setVerificationMethod; fi
-        if [ $editCommand == "6" ]; then loadPreset; fi
+        if [ $editCommand == "4" ]; then setVerificationMethod; fi
+        if [ $editCommand == "5" ]; then loadPreset; fi
         if [ $editCommand == "0" ]; then loop="false"; fi
     done
+}
+
+runJobs() {
+
+    if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
+
+        jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
+
+        echo
+        echo
+
+        if [ $jobNumber -eq 1 ]; then
+            echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
+        else
+            echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
+        fi
+
+        startTimeAllJobs=$(date +%s)
+
+        currentJobNumber=0
+        reelNumber=0
+        for sourceFolder in "${allSourceFolders[@]}"; do # Loops over Source array for the Job Queue
+
+            reelName=${allReelNames[$reelNumber]}
+            ((reelNumber++))
+
+            for destinationFolder in "${allDestinationFolders[@]}"; do # Loops over Destination array for the Job Que
+                ((currentJobNumber++))
+                echo
+                echo
+                echo "${BOLD}JOB $currentJobNumber / $jobNumber   $sourceFolder -> $destinationFolder${NORMAL}"
+                run
+            done
+        done
+
+        endTimeAllJobs=$(date +%s)
+
+        elapsedTime=$(($endTimeAllJobs - $startTimeAllJobs))
+
+        timeTemp=$elapsedTime
+        elapsedTimeFormatted=$(formatTime)
+
+        echo
+        if [ $jobNumber -eq 1 ]; then
+            echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
+        else
+            echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
+        fi
+        echo
+
+        echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
+        read -e quitFRC
+        while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
+            echo "Do you want to quit the Program? (y/n)"
+            read -e quitFRC
+        done
+        if [[ $quitFRC == "y" ]]; then command=0; fi
+
+    else
+
+        echo
+        echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
+    fi
 }
 
 ## Base Loop
@@ -618,66 +684,7 @@ while [ true ]; do
     read -e command
 
     if [ $command == "1" ]; then
-        if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
-
-            jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
-
-            echo
-            echo
-
-            if [ $jobNumber -eq 1 ]; then
-                echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
-            else
-                echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
-            fi
-
-            startTimeAllJobs=$(date +%s)
-
-            currentJobNumber=0
-            reelNumber=0
-            for sourceFolder in "${allSourceFolders[@]}"; do # Loops over Source array for the Job Queue
-
-                reelName=${allReelNames[$reelNumber]}
-                ((reelNumber++))
-
-                for destinationFolder in "${allDestinationFolders[@]}"; do # Loops over Destination array for the Job Que
-                    ((currentJobNumber++))
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber / $jobNumber   $sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-                done
-            done
-
-            endTimeAllJobs=$(date +%s)
-
-            elapsedTime=$(($endTimeAllJobs - $startTimeAllJobs))
-
-            timeTemp=$elapsedTime
-            elapsedTimeFormatted=$(formatTime)
-
-            echo
-            if [ $jobNumber -eq 1 ]; then
-                echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
-            else
-                echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
-            fi
-            echo
-
-            echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
-            read -e quitFRC
-            while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
-                echo "Do you want to quit the Program? (y/n)"
-                read -e quitFRC
-            done
-            if [[ $quitFRC == "y" ]]; then command=0; fi
-
-        else
-
-            echo
-            echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
-        fi
-
+        runJobs
     fi
 
     if [ $command == "2" ]; then
