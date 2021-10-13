@@ -254,7 +254,7 @@ run() {
     log # Create Log File and Write Header
 
     # Used to position lines in the log file
-    headerLength=$(($(wc -l "$logfilePath" | cut --delimiter=" " -f1) - 4 ))
+    headerLength=$(grep -n "VERIFICATION: " $logfilePath | cut -d: -f1)
 
     totalFileCount=$(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)
     totalFileSize=$(du -msh "$sourceFolder" | cut -f1)
@@ -262,6 +262,8 @@ run() {
 
     if [[ $runMode == "copy" ]]; then
         echo "${BOLD}RUNNING COPY...${NORMAL}"
+        echo  >>"$logfilePath"
+        echo "COPY PROCESS:" >>"$logfilePath"
         copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
         cp --archive --recursive --verbose "$sourceFolder" "$destinationFolderFullPath" >>"$logfilePath" 2>&1
 
@@ -325,7 +327,7 @@ run() {
         sed -i "$(($headerLength + 3)) a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
     fi
 
-    sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
+    sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/I,+1d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
 
     mkdir -p "$scriptPath"/filmrisscopy_logs/
     cp "$logfilePath" "$scriptPath"/filmrisscopy_logs/ # Backup logs to a folder in the scriptpath
