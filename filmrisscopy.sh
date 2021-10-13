@@ -20,7 +20,9 @@ NC='tput sgr0' # no color
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
-echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
+version="0.2"
+
+echo "${BOLD}FILMRISSCOPY VERSION $version${NORMAL}"
 echo
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
 echo "LAST UPDATED:	$(date -r "$scriptPath")"
@@ -251,6 +253,9 @@ run() {
 
     log # Create Log File and Write Header
 
+    # Used to position lines in the log file
+    headerLength=$(($(wc -l "$logfilePath" | cut --delimiter=" " -f1) - 4 ))
+
     totalFileCount=$(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)
     totalFileSize=$(du -msh "$sourceFolder" | cut -f1)
     copyStartTime=$(date +%s)
@@ -314,10 +319,10 @@ run() {
     echo # End of the Job
     if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]]; then
         echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
-        sed -i "11 a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "$(($headerLength + 3)) a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
     else
         echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
-        sed -i "11 a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "$(($headerLength + 3)) a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
     fi
 
     sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
@@ -386,10 +391,10 @@ checksum() {
     checksumPassedFiles=$(grep -c ": OK" "$logfilePath") # Checks wether the output to the logfile were all "OK" or not
     if [[ $checksumPassedFiles == $totalFileCount ]]; then
         echo "${BOLD}NO CHECKSUM ERRORS!${NORMAL}"
-        sed -i "9 a NO CHECKSUM ERRORS!\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "$(($headerLength + 1)) a NO CHECKSUM ERRORS!\n" "$logfilePath" >/dev/null 2>&1
     else
         echo "${BOLD}$($RED)ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
-        sed -i "9 a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "$(($headerLength + 1)) a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" >/dev/null 2>&1
     fi
 }
 
@@ -439,7 +444,6 @@ checksumComparisonStatus() {
 }
 
 ## Run Status
-
 runStatus() {
     header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
     table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
@@ -461,13 +465,15 @@ runStatus() {
 log() {
     logfile=$projectDate"_"$timeNow"_"$currentJobNumber"_"$jobNumber"_""$projectName""_filmrisscopy_log.txt"
     logfilePath="$destinationFolderFullPath"/$logfile
-    echo FILMRISSCOPY VERSION 0.1 >>"$logfilePath"
+    echo FILMRISSCOPY VERSION $version >>"$logfilePath"
     echo PROJECT NAME: $projectName >>"$logfilePath"
-    echo DATE/TIME: $projectDate"_"$timeNow >>"$logfilePath"
+    echo SHOOT DAY: $projectShootDay >>"$logfilePath"
+    echo PROJECT DATE: $projectDate >>"$logfilePath"
     echo SOURCE: $sourceFolder >>"$logfilePath"
     echo DESTINATION: $destinationFolderFullPath >>"$logfilePath"
     echo JOB: $currentJobNumber / $jobNumber >>"$logfilePath"
     echo RUNMODE: $runMode >>"$logfilePath"
+    echo DATE/TIME: $dateNow"_"$timeNow >>"$logfilePath"
 
     if [ $verificationMode == "md5" ]; then
         echo VERIFICATION: MD5 >>"$logfilePath"
@@ -497,7 +503,7 @@ formatTime() {
 printStatus() {
     echo
     if [[ $statusMode == "normal" ]]; then
-        echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
+        echo "${BOLD}FILMRISSCOPY VERSION $version${NORMAL}"
     fi
 
     if [[ $statusMode == "edit" ]]; then
@@ -531,7 +537,7 @@ printStatus() {
         echo "${BOLD}VERIFICATION:${NORMAL}   SHA-1"
         ;;
     size)
-        echo "${BOLD}VERIFICATION:${NORMAL}   size comparison only"
+        echo "${BOLD}VERIFICATION:${NORMAL}   Size Comparison Only"
         ;;
     esac
 
