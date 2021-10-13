@@ -43,17 +43,25 @@ projectTime=$(date +"%H%M")
 verificationMode="xxhash"
 
 ## Define Project Settings
-setProjectName() {
+function setProjectInfo() {
     echo
-    echo Choose Project Name:
+    echo "Choose Project Name"
     read -e projectName
+
+    echo
+    echo "Input Day of Shooting (Format: $projectDate)"
+    read -e ProjectDate
+
+    echo
+    echo "Name Day of Shooting (eg. DT12)"
+    read -e ProjectDayName
 }
 
 #######################################
 # Choose Source Directory and Reel Name for each Source
 # Outputs a Source Array and a Reel Name Array
 #######################################
-setSource() {
+function setSource() {
     echo
     echo Choose Source Folder:
     read -e sourceFolderTemp
@@ -97,14 +105,14 @@ setSource() {
 }
 
 ## Choose Reel Name
-setReelName() {
+function setReelName() {
     echo
     echo Source Reel Name:
     read -e reelNameTemp
 }
 
 ## Choose Destination Directory
-setDestination() {
+function setDestination() {
     echo
     echo Choose Destination Folder:
     read -e destinationFolderTemp
@@ -144,7 +152,7 @@ setDestination() {
 }
 
 ## Choose Verification Method
-setVerificationMethod() {
+function setVerificationMethod() {
     echo
     echo "Choose your preferred Verification Method (xxHash is recommended)"
     echo
@@ -166,7 +174,7 @@ setVerificationMethod() {
     fi
 }
 
-loadPreset() {
+function loadPreset() {
     echo
     echo "(0) BACK  (1) LOAD LAST PRESET  (2) LOAD PRESET FROM FILE"
     read -e presetCommand
@@ -183,7 +191,7 @@ loadPreset() {
 }
 
 ## Run the main Copy Process
-run() {
+function run() {
     echo
 
     for dst in "${allDestinationFoldersFullPath[@]}"; do
@@ -263,7 +271,7 @@ run() {
 }
 
 ## Copy progress
-copyStatus() {
+function copyStatus() {
     while [ true ]; do
         sleep 1 # Change if it slows down the process to much / if more accuracy is needed
 
@@ -286,7 +294,7 @@ copyStatus() {
 }
 
 ## Checksum
-checksumSource() {
+function checksumSource() {
     checksumStartTime=$(date +%s)
     cd "$sourceFolder"
     logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Used for the Progress
@@ -302,7 +310,8 @@ checksumSource() {
 
 }
 
-checksumComparison() {
+## Checksum Comparison
+function checksumComparison() {
     checksumStartTime=$(date +%s)
 
     logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Updated for the new Progress
@@ -316,7 +325,7 @@ checksumComparison() {
 }
 
 ## Checksum Progress
-checksumStatus() {
+function checksumStatus() {
     while [[ true ]]; do
         sleep 1
 
@@ -338,7 +347,7 @@ checksumStatus() {
 }
 
 ## Checksum Comparison progress
-checksumComparisonStatus() {
+function checksumComparisonStatus() {
     while [[ true ]]; do
         sleep 1
 
@@ -361,7 +370,7 @@ checksumComparisonStatus() {
 }
 
 ## Run Status
-runStatus() {
+function runStatus() {
 
     printf '\e[?7l' # Disabling line wrapping
     printf '\e[?25l' # Hide Cursor
@@ -421,7 +430,7 @@ runStatus() {
 }
 
 ## Log
-log() {
+function log() {
 
     logfile=$projectDate"_"$projectTime"_""$projectName""_filmrisscopy_log.txt"
     logfilePath="$dst/$logfile"
@@ -452,7 +461,7 @@ log() {
 }
 
 ## Changes seconds to h:m:s, change $tempTime to use, and save the output in a variable
-formatTime() {
+function formatTime() {
     h=$(($timeTemp / 3600))
     m=$(($timeTemp % 3600 / 60))
     s=$(($timeTemp % 60))
@@ -460,7 +469,7 @@ formatTime() {
 }
 
 ## Print Current Status
-printStatus() {
+function printStatus() {
     echo
     if [[ $statusMode == "normal" ]]; then
         echo "${BOLD}"$VERSION"${NORMAL}"
@@ -504,7 +513,7 @@ printStatus() {
 }
 
 ## Check if there is enought Space Left in all the Destinations
-checkIfThereIsEnoughSpaceLeft() {
+function checkIfThereIsEnoughSpaceLeft() {
     totalCopySize=0
     for src in "${allSourceFolders[@]}"; do
         totalCopySize=$(($totalCopySize + $(du --block-size=1 --summarize "$src" | cut -f1))) # Calculate total data size which will be copied
@@ -520,7 +529,7 @@ checkIfThereIsEnoughSpaceLeft() {
 }
 
 ## Check if Folder already Exists
-checkIfFolderExists() {
+function checkIfFolderExists() {
 
     if [[ ! -d "$dst" ]]; then # Check if the folder already exists, and creates the structure if needed
         mkdir -p "$dst"
@@ -572,7 +581,7 @@ checkIfFolderExists() {
 }
 
 ## Write preset_last.config
-writePreset() {
+function writePreset() {
 
     echo "## FILMRISSCOPY PRESET"
     echo "projectName=$projectName"
@@ -595,7 +604,7 @@ writePreset() {
 }
 
 ## Setup at Start
-startupSetup() {
+function startupSetup() {
 
     echo
     echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
@@ -605,7 +614,7 @@ startupSetup() {
     fi
 
     if [[ $usePreset == "1" ]]; then
-        setProjectName
+        setProjectInfo
         setSource
         setDestination
     elif [[ $usePreset == "2" ]]; then
@@ -619,7 +628,7 @@ startupSetup() {
 }
 
 ## Edit Project Loop
-editProject() {
+function editProject() {
     loop=true
     while [[ $loop == "true" ]]; do
 
@@ -631,7 +640,7 @@ editProject() {
         echo "(0) BACK  (1) EDIT PROJECT NAME  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) EDIT DATE  (5) CHANGE VERIFICATION METHOD (6) LOAD PRESET"
         read -e editCommand
 
-        if [ $editCommand == "1" ]; then setProjectName; fi
+        if [ $editCommand == "1" ]; then setProjectInfo; fi
         if [ $editCommand == "2" ]; then setSource; fi
         if [ $editCommand == "3" ]; then setDestination; fi
         if [ $editCommand == "4" ]; then
@@ -644,8 +653,100 @@ editProject() {
     done
 }
 
+## Starts the Jobs one by one
+function startJobs(){
+  if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
+
+      jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
+
+      echo
+
+      if [ $jobNumber -eq 1 ]; then
+          echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
+      else
+          echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
+      fi
+
+      if [ $verificationMode == "md5" ]; then # Used in commands later (eg. to refer to the correct **sum.txt )
+          checksumUtility="md5sum"
+      elif [ $verificationMode == "xxhash" ]; then
+          checksumUtility="xxhsum"
+      elif [ $verificationMode == "sha" ]; then
+          checksumUtility="shasum"
+      fi
+
+      startTimeAllJobs=$(date +%s)
+
+      checkIfThereIsEnoughSpaceLeft # Check if there is enough Space left in all Destinations
+
+      for ((i = 0; i < ${#allSourceFolders[@]}; i = i + 1)); do
+          runMode=copy # Can be Copy, Checksum or RSync
+
+          sourceFolder="${allSourceFolders[$i]}"
+          reelName="${allReelNames[$i]}"
+
+          for ((j = 0; j < ${#allDestinationFolders[@]}; j = j + 1)); do
+              dst="${allDestinationFolders[$j]}""$projectName""/"$projectDate"_""$projectName""_"$reelName"" # Generate Full Path
+              allDestinationFoldersFullPath+=("$dst")
+              checkIfFolderExists
+          done
+          run &
+          ALL_PID+=("$!")
+
+      done
+      runStatus &
+
+      for pid in ${ALL_PID[@]} ; do # Wait for all Copy Processes to finish before the last one (runStatus) is killed
+          wait $pid
+      done
+
+      sleep 3 # wait for runProgress to finish
+      kill $!
+
+      printf '\e[?25h' # Show Cursor Again
+      printf '\e[?7h' # Enable Line wrapping again
+
+      echo
+      echo
+      echo
+
+      endTimeAllJobs=$(date +%s)
+
+      elapsedTime=$(($endTimeAllJobs - $startTimeAllJobs))
+
+      timeTemp=$elapsedTime
+      elapsedTimeFormatted=$(formatTime)
+
+      echo
+      echo
+
+      if [ $jobNumber -eq 1 ]; then
+          echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
+      else
+          echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
+      fi
+      echo
+
+      echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
+      read -e quitFRC
+      while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
+          echo "Do you want to quit the Program? (y/n)"
+          read -e quitFRC
+      done
+      if [[ $quitFRC == "y" ]]; then command=0; fi
+
+  else
+
+      echo
+      echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
+  fi
+
+
+
+}
+
 ## Base Loop
-baseLoop() {
+function baseLoop() {
   printf '\e[?25l' # Hide Cursor
     while [ true ]; do
 
@@ -657,92 +758,7 @@ baseLoop() {
         read -e command
 
         if [ $command == "1" ]; then
-            if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
-
-                jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
-
-                echo
-
-                if [ $jobNumber -eq 1 ]; then
-                    echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
-                else
-                    echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
-                fi
-
-                if [ $verificationMode == "md5" ]; then # Used in commands later (eg. to refer to the correct **sum.txt )
-                    checksumUtility="md5sum"
-                elif [ $verificationMode == "xxhash" ]; then
-                    checksumUtility="xxhsum"
-                elif [ $verificationMode == "sha" ]; then
-                    checksumUtility="shasum"
-                fi
-
-                startTimeAllJobs=$(date +%s)
-
-                checkIfThereIsEnoughSpaceLeft # Check if there is enough Space left in all Destinations
-
-                for ((i = 0; i < ${#allSourceFolders[@]}; i = i + 1)); do
-                    runMode=copy # Can be Copy, Checksum or RSync
-
-                    sourceFolder="${allSourceFolders[$i]}"
-                    reelName="${allReelNames[$i]}"
-
-                    for ((j = 0; j < ${#allDestinationFolders[@]}; j = j + 1)); do
-                        dst="${allDestinationFolders[$j]}""$projectName""/"$projectDate"_""$projectName""_"$reelName"" # Generate Full Path
-                        allDestinationFoldersFullPath+=("$dst")
-                        checkIfFolderExists
-                    done
-                    run &
-                    ALL_PID+=("$!")
-
-                done
-                runStatus &
-
-                for pid in ${ALL_PID[@]} ; do # Wait for all Copy Processes to finish before the last one (runStatus) is killed
-                    wait $pid
-                done
-
-                sleep 3 # wait for runProgress to finish
-                kill $!
-
-                printf '\e[?25h' # Show Cursor Again
-                printf '\e[?7h' # Enable Line wrapping again
-
-                echo
-                echo
-                echo
-
-                endTimeAllJobs=$(date +%s)
-
-                elapsedTime=$(($endTimeAllJobs - $startTimeAllJobs))
-
-                timeTemp=$elapsedTime
-                elapsedTimeFormatted=$(formatTime)
-
-                echo
-                echo
-
-                if [ $jobNumber -eq 1 ]; then
-                    echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
-                else
-                    echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
-                fi
-                echo
-
-                echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
-                read -e quitFRC
-                while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
-                    echo "Do you want to quit the Program? (y/n)"
-                    read -e quitFRC
-                done
-                if [[ $quitFRC == "y" ]]; then command=0; fi
-
-            else
-
-                echo
-                echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
-            fi
-
+            startJobs
         fi
 
         if [ $command == "2" ]; then
@@ -750,7 +766,7 @@ baseLoop() {
         fi
 
         if [ $command == "3" ]; then
-            setProjectName
+            setProjectInfo
             setSource
             setDestination
         fi
