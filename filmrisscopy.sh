@@ -249,6 +249,8 @@ function verify() {
     echo "CHECKSUM CALCULATIONS ON SOURCE:" >>"$logfilePath"
     checksumFile="$tempFolder"/"$checksumUtility"_"$dateNow$timeNow"
 
+    headerLength=$(grep -n "VERIFICATION: " $logfilePath | cut -d: -f1)
+
     sed -n $startLineChecksum','$endLineChecksum'p' "$logFileVerification" | tee "$checksumFile" >>"$logfilePath" 2>&1
 
     destinationFolderFullPath=$copyDirectoryVerification
@@ -260,6 +262,7 @@ function verify() {
     totalFileSize=$(du -msh "$copyDirectoryVerification" | cut -f1)
 
     checksumComparison
+    endScreen
 
 }
 
@@ -755,21 +758,45 @@ function runJobs() {
         else
             echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
         fi
-        echo
 
-        echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
-        read -e quitFRC
-        while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
-            echo "Do you want to quit the Program? (y/n)"
-            read -e quitFRC
-        done
-        if [[ $quitFRC == "y" ]]; then command=0; fi
+        endScreen
 
     else
 
         echo
         echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
     fi
+}
+
+function endScreen() {
+    echo
+    # echo
+    # echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
+    # read -e quitFRC
+    # while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
+    #     echo "Do you want to quit the Program? (y/n)"
+    #     read -e quitFRC
+    # done
+    #
+    # if [[ $quitFRC == "n" ]]; then return; fi
+
+    echo
+    echo "Exiting FilmrissCopy"
+    echo
+    echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
+    read -e overWriteLastPreset
+    while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
+        echo "Update last preset with the current Setup? (y/n)"
+        read -e overWriteLastPreset
+    done
+    if [[ $overWriteLastPreset == "y" ]]; then
+        writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
+        echo
+        echo "Preset Updated"
+    fi
+    echo
+    exit
+
 }
 
 function baseLoop() {
@@ -801,26 +828,17 @@ function baseLoop() {
         fi
 
         if [ $command == "0" ]; then
-            echo
-            echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
-            read -e overWriteLastPreset
-            while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
-                echo "Update last preset with the current Setup? (y/n)"
-                read -e overWriteLastPreset
-            done
-            if [[ $overWriteLastPreset == "y" ]]; then
-                writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
-                echo
-                echo "Preset Updated"
-            fi
-            echo
-            exit
+            endScreen
         fi
     done
 }
 
 ## Base Loop
 startupSetup
+
+# Trap ctrl-c and call endScreen; Dont apply before setup
+trap endScreen INT
+
 baseLoop
 
 ## Add Copied Status
