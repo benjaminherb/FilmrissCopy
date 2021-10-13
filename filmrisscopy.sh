@@ -41,7 +41,7 @@ timeNow=$(date +"%H%M")
 verificationMode="xxhash"
 
 ## Define Project Settings
-setProjectInfo() {
+function setProjectInfo() {
     echo
     echo "Choose Project Name"
     read -e projectName
@@ -61,7 +61,7 @@ setProjectInfo() {
 }
 
 ## Choose Ssource Directoryot -name
-setSource() {
+function setSource() {
     echo
     echo Choose Source Folder:
     read -e sourceFolderTemp
@@ -105,14 +105,14 @@ setSource() {
 }
 
 ## Choose Reel Name
-setReelName() {
+function setReelName() {
     echo
     echo Source Reel Name:
     read -e reelNameTemp
 }
 
 ## Choose Destination Directory
-setDestination() {
+function setDestination() {
     echo
     echo Choose Destination Folder:
     read -e destinationFolderTemp
@@ -152,7 +152,7 @@ setDestination() {
 }
 
 ## Choose Verification Method
-setVerificationMethod() {
+function setVerificationMethod() {
     echo
     echo "Choose your preferred Verification Method (xxHash is recommended)"
     echo
@@ -174,7 +174,8 @@ setVerificationMethod() {
     fi
 }
 
-loadPreset() {
+## Loads preset from text file
+function loadPreset() {
     echo
     echo "(0) BACK  (1) LOAD LAST PRESET  (2) LOAD PRESET FROM FILE"
     read -e presetCommand
@@ -190,8 +191,80 @@ loadPreset() {
     fi
 }
 
+## Verifys Copy using the checksums from a filmrisscopy_log file
+function verify() {
+
+    echo
+    echo "Choose a Filmrisscopy Log File"
+    read -e logFileVerification
+
+    while [[ ! -f "$logFileVerification" ]] || [[ ! "$logFileVerification" == *"filmrisscopy_log.txt" ]]; do
+        echo "$($RED)ERROR: \"$logFileVerification\" IS NOT A VALID FILMRISSCOPY LOG FILE $($NC)"
+        echo
+        echo "Choose filmrisscopy_log.txt File"
+        read -e logFileVerification
+    done
+
+    echo
+    echo "Choose Copy to verify [Default: $(dirname "$logFileVerification")]"
+    read -e copyDirectoryVerification
+
+    while [ ! "$copyDirectoryVerification" == "" ] && [ ! -d "$copyDirectoryVerification" ]; do
+        echo "$($RED)ERROR: "$copyDirectoryVerification" IS NOT A VALID DIRECTORY$($NC)"
+        copyDirectoryVerification="" # Resets so you can use the default again
+        echo
+        echo "Choose Copy to verify [Default: $(dirname "$logFileVerification")]"
+        read -e logFileVerification
+    done
+
+    if [[ "$copyDirectoryVerification" == "" ]]; then
+        copyDirectoryVerification=$(dirname "$logFileVerification")
+        echo "$copyDirectoryVerification"
+    fi
+
+    # get start and end of the checksums
+    startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logFileVerification" | cut -d: -f1) + 1))
+    endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logFileVerification" | cut -d: -f1) - 2))
+
+    logfilePath=""$copyDirectoryVerification"/"$dateNow"_"$timeNow"_filmrisscopy_verification_log.txt"
+    echo "FILMRISSCOPY VERSION $version" >>"$logfilePath"
+    echo "LOGFILE: $logFileVerification" >>"$logfilePath"
+    echo "COPY DIRECTORY: $copyDirectoryVerification" >>"$logfilePath"
+
+    verificationModeName=$(grep "VERIFICATION" $logFileVerification | cut -d ' ' -f2)
+
+    if [ $verificationModeName == "xxHash" ]; then
+        checksumUtility="xxhsum"
+    elif [ $verificationModeName == "SHA-1" ]; then
+        checksumUtility="shasum"
+    elif [ $verificationModeName == "MD5" ]; then
+        checksumUtility="md5sum"
+    else
+        echo "$($RED)ERROR: LOG FILE CONTAINS NO CHECKSUMS$($NC)"
+        baseLoop
+    fi
+
+    echo "VERIFICATION: "$verificationModeName >>"$logfilePath"
+    echo >>"$logfilePath"
+    echo "CHECKSUM CALCULATIONS ON SOURCE:" >>"$logfilePath"
+    checksumFile="$tempFolder"/"$checksumUtility"_"$dateNow$timeNow"
+
+    sed -n $startLineChecksum','$endLineChecksum'p' "$logFileVerification" | tee "$checksumFile" >>"$logfilePath" 2>&1
+
+    destinationFolderFullPath=$copyDirectoryVerification
+    sourceFolder=$(grep "SOURCE: " $logFileVerification | cut -d ' ' -f2)
+
+    logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Used for the Progress
+    checksumStartTime=$(date +%s)
+    totalFileCount=$(find "$copyDirectoryVerification" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name "*_filmrisscopy_verification_log.txt" -not -name ".DS_Store" \) | wc -l)
+    totalFileSize=$(du -msh "$copyDirectoryVerification" | cut -f1)
+
+    checksumComparison
+
+}
+
 ## Run the main Copy Process
-run() {
+function run() {
     runMode=copy # Can be Copy, Checksum or RSync
     echo
 
@@ -262,7 +335,7 @@ run() {
 
     if [[ $runMode == "copy" ]]; then
         echo "${BOLD}RUNNING COPY...${NORMAL}"
-        echo  >>"$logfilePath"
+        echo >>"$logfilePath"
         echo "COPY PROCESS:" >>"$logfilePath"
         copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
         cp --archive --recursive --verbose "$sourceFolder" "$destinationFolderFullPath" >>"$logfilePath" 2>&1
@@ -308,7 +381,7 @@ run() {
         checksumUtility="shasum"
     fi
 
-    checksumFile=""$tempFolder"/"$checksumUtility"_"$reelName"" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
+    checksumFile="$tempFolder"/"$checksumUtility"_"$reelName"_"$dateNow$timeNow" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
 
     checksum
 
@@ -334,7 +407,7 @@ run() {
 }
 
 ## Copy progress
-copyStatus() {
+function copyStatus() {
     while [ true ]; do
         sleep 1 # Change if it slows down the process to much / if more accuracy is needed
 
@@ -357,7 +430,7 @@ copyStatus() {
 }
 
 ## Checksum
-checksum() {
+function checksum() {
     checksumStartTime=$(date +%s)
     echo "${BOLD}RUNNING CHECKSUM CALCULATIONS ON SOURCE...${NORMAL}"
     echo >>"$logfilePath"
@@ -371,6 +444,13 @@ checksum() {
 
     sleep 2
     kill $!
+
+    checksumComparison
+
+}
+
+function checksumComparison() {
+
     echo
 
     checksumStartTime=$(date +%s)
@@ -398,10 +478,11 @@ checksum() {
         echo "${BOLD}$($RED)ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
         sed -i "$(($headerLength + 1)) a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" >/dev/null 2>&1
     fi
+
 }
 
 ## Checksum Progress
-checksumStatus() {
+function checksumStatus() {
     while [[ true ]]; do
         sleep 1
 
@@ -423,7 +504,7 @@ checksumStatus() {
 }
 
 ## Checksum Comparison progress
-checksumComparisonStatus() {
+function checksumComparisonStatus() {
     while [[ true ]]; do
         sleep 1
 
@@ -446,7 +527,7 @@ checksumComparisonStatus() {
 }
 
 ## Run Status
-runStatus() {
+function runStatus() {
     header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
     table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
 
@@ -464,7 +545,7 @@ runStatus() {
 }
 
 ## Log
-log() {
+function log() {
     logfile=$projectDate"_"$timeNow"_"$currentJobNumber"_"$jobNumber"_""$projectName""_filmrisscopy_log.txt"
     logfilePath="$destinationFolderFullPath"/$logfile
     echo FILMRISSCOPY VERSION $version >>"$logfilePath"
@@ -494,7 +575,7 @@ log() {
 }
 
 ## Changes seconds to h:m:s, change $tempTime to use, and save the output in a variable
-formatTime() {
+function formatTime() {
     h=$(($timeTemp / 3600))
     m=$(($timeTemp % 3600 / 60))
     s=$(($timeTemp % 60))
@@ -502,7 +583,7 @@ formatTime() {
 }
 
 ## Print Current Status
-printStatus() {
+function printStatus() {
     echo
     if [[ $statusMode == "normal" ]]; then
         echo "${BOLD}FILMRISSCOPY VERSION $version${NORMAL}"
@@ -514,7 +595,7 @@ printStatus() {
 
     echo "${BOLD}PROJECT NAME:${NORMAL}	$projectName"
     echo "${BOLD}SHOOT DAY:${NORMAL}	$projectShootDay"
-    echo "${BOLD}DATE:	${NORMAL}	$projectDate"
+    echo "${BOLD}PROJECT DATE:${NORMAL}	$projectDate"
 
     x=0
     for src in "${allSourceFolders[@]}"; do # Loops over source array prints all entrys
@@ -546,7 +627,7 @@ printStatus() {
 }
 
 ## Write preset_last.config
-writePreset() {
+function writePreset() {
 
     echo "## FILMRISSCOPY PRESET"
     echo "projectName=$projectName"
@@ -571,7 +652,7 @@ writePreset() {
 }
 
 ## Setup at Start
-startupSetup() {
+function startupSetup() {
 
     echo
     echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
@@ -585,8 +666,20 @@ startupSetup() {
         setSource
         setDestination
     elif [[ $usePreset == "2" ]]; then
-        source "$scriptPath/filmrisscopy_preset_last.config"
-    elif [[ $usePreset == "3" ]]; then
+
+        presetLast="$scriptPath/filmrisscopy_preset_last.config"
+
+        if [ -f "$presetLast" ]; then
+            source "$scriptPath/filmrisscopy_preset_last.config"
+        else
+            echo "$($RED)ERROR: LAST PRESET NOT FOUND$($NC)"
+            startupSetup
+        fi
+
+    elif
+
+        [[ $usePreset == "3" ]]
+    then
         echo
         echo "Choose Preset Path"
         read -e presetPath
@@ -595,7 +688,7 @@ startupSetup() {
 }
 
 ## Edit Project Loop
-editProject() {
+function editProject() {
     loop=true
     while [[ $loop == "true" ]]; do
 
@@ -616,7 +709,7 @@ editProject() {
     done
 }
 
-runJobs() {
+function runJobs() {
 
     if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
 
@@ -679,49 +772,56 @@ runJobs() {
     fi
 }
 
+function baseLoop() {
+    while [ true ]; do
+
+        statusMode="normal" # choose how the Status will be shown (normal or edit)
+        printStatus
+
+        echo
+        echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP  (4) VERIFY"
+        read -e command
+
+        if [ $command == "1" ]; then
+            runJobs
+        fi
+
+        if [ $command == "2" ]; then
+            editProject
+        fi
+
+        if [ $command == "3" ]; then
+            setProjectInfo
+            setSource
+            setDestination
+        fi
+
+        if [ $command == "4" ]; then
+            verify
+        fi
+
+        if [ $command == "0" ]; then
+            echo
+            echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
+            read -e overWriteLastPreset
+            while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
+                echo "Update last preset with the current Setup? (y/n)"
+                read -e overWriteLastPreset
+            done
+            if [[ $overWriteLastPreset == "y" ]]; then
+                writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
+                echo
+                echo "Preset Updated"
+            fi
+            echo
+            exit
+        fi
+    done
+}
+
 ## Base Loop
 startupSetup
-
-while [ true ]; do
-
-    statusMode="normal" # choose how the Status will be shown (normal or edit)
-    printStatus
-
-    echo
-    echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP"
-    read -e command
-
-    if [ $command == "1" ]; then
-        runJobs
-    fi
-
-    if [ $command == "2" ]; then
-        editProject
-    fi
-
-    if [ $command == "3" ]; then
-        setProjectInfo
-        setSource
-        setDestination
-    fi
-
-    if [ $command == "0" ]; then
-        echo
-        echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
-        read -e overWriteLastPreset
-        while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
-            echo "Update last preset with the current Setup? (y/n)"
-            read -e overWriteLastPreset
-        done
-        if [[ $overWriteLastPreset == "y" ]]; then
-            writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
-            echo
-            echo "Preset Updated"
-        fi
-        echo
-        exit
-    fi
-done
+baseLoop
 
 ## Add Copied Status
 ## Make Checksum Calculations in the Source folder first
