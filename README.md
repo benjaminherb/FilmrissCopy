@@ -14,3 +14,11 @@ Comprehensive Logfiles for the completed process are stored in the destination f
 The created folder structure looks like this:  
 .../PROJECT/DATE_PROJECT_REELNAME/SOURCEFOLDER/DATA...<br/>
 .../PROJECT/DATE_PROJECT_REELNAME/DATE_TIME_JOB_PROJECTNAME_filmrisscopy_log.txt<br/>
+
+
+V0.2 Changelog
+Added Option to verify using FilmrissCopy Log Files
+Fixed RSYNC Behaviour & Speed Improvements
+Added Way to differentiate between Current Date/Time and Project Date
+Fixed Log File Formatting Issues
+Stability Improvements

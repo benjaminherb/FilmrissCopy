@@ -599,7 +599,7 @@ function log() {
     cd "$sourceFolder"
     cd ..
     echo FOLDER STRUCTURE: >>"$logfilePath"
-    find "${sourceBaseName}/" ! -path . -type d >>"$logfilePath" # Print Folder Structure
+    find "./${sourceBaseName}/" ! -path . -type d >>"$logfilePath" # Print Folder Structure
 }
 
 ## Changes seconds to h:m:s, change $tempTime to use, and save the output in a variable
