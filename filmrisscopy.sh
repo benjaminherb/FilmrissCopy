@@ -94,6 +94,7 @@ function setSource() {
 
         if [[ $sourceFolderTemp == "" ]]; then
             loop=false
+            echo "-"
         elif [ ! -d "$sourceFolderTemp" ]; then
             echo "$($RED)ERROR: $sourceFolderTemp IS NOT A VALID SOURCE$($NC)"
         elif [[ $duplicateSource == "true" ]]; then
@@ -148,6 +149,7 @@ function setDestination() {
 
         if [[ $destinationFolderTemp == "" ]]; then
             loop=false
+            echo "-"
         elif [ ! -d "$destinationFolderTemp" ]; then
             echo "$($RED)ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION$($NC)"
         elif [[ $duplicateDestination == "true" ]]; then
@@ -296,7 +298,8 @@ function run() {
         return
     fi
 
-    destinationFolderFullPath="$destinationFolder""$projectName""/"$projectDate"_""$projectName""_"$reelName # Generate Full Path
+    destinationFolderFullPath="${destinationFolder}${projectName}/${projectDate}_${projectName}_${reelName}" # Generate Full Path
+    sourceBaseName=$(basename "$sourceFolder")
 
     if [[ ! -d "$destinationFolderFullPath" ]]; then # Check if the folder already exists, and creates the structure if needed
         mkdir -p "$destinationFolderFullPath"
@@ -333,7 +336,7 @@ function run() {
             echo "Run RSYNC to copy the missing Files? (Needs Sudo Privileges) (y/n)"
             read -er runRsync
 
-            while [ ! $runRsync == "y" ] && [ ! $runRsync == "n" ]; do
+            while [ ! "$runRsync" == "y" ] && [ ! "$runRsync" == "n" ]; do
                 echo "Run RSYNC to copy the missing Files? (y/n)"
                 read -er runRsync
             done
@@ -347,7 +350,7 @@ function run() {
     log # Create Log File and Write Header
 
     # Used to position lines in the log file
-    headerLength=$(grep -n "VERIFICATION: " $logfilePath | cut --delimiter=: --field=1)
+    headerLength=$(grep -n "VERIFICATION: " "$logfilePath" | cut --delimiter=: --field=1)
 
     totalFileCount=$(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc --lines)
     totalFileSize=$(du -msh "$sourceFolder" | cut --field=1)
@@ -386,11 +389,14 @@ function run() {
 
     if [[ $runMode == "rsync" ]]; then # Needs Root, checks based on checksum Calculations
         sudo echo "${BOLD}RUNNING RSYNC...${NORMAL}"
+        echo >>"$logfilePath"
+        echo "RSYNC PROCESS:" >>"$logfilePath"
         copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-        sudo rsync --verbose --checksum --archive "$sourceFolder" "$destinationFolderFullPath" >>"$logfilePath" 2>&1
+        sudo rsync --archive --size-only --info=NAME "$sourceFolder" "${destinationFolderFullPath}/${sourceBaseName}" >>"$logfilePath"
         sleep 2
         kill $!
         echo
+
     fi
 
     if [ $verificationMode == "md5" ]; then # Used in commands later (eg. to refer to the correct **sum.txt )
@@ -591,8 +597,9 @@ function log() {
     echo THE COPY PROCESS WAS NOT COMPLETED CORRECTLY >>"$logfilePath" # Will be Deleted after the Job is finished
     echo >>"$logfilePath"
     cd "$sourceFolder"
+    cd ..
     echo FOLDER STRUCTURE: >>"$logfilePath"
-    find . ! -path . -type d >>"$logfilePath" # Print Folder Structure
+    find "${sourceBaseName}/" ! -path . -type d >>"$logfilePath" # Print Folder Structure
 }
 
 ## Changes seconds to h:m:s, change $tempTime to use, and save the output in a variable
@@ -859,6 +866,8 @@ trap endScreen INT
 
 baseLoop
 
+## @TODO Add Drive Specifier
+## @TODO Speedup / Fix RSYNC
 ## Add Copied Status
 ## Make Checksum Calculations in the Source folder first
 ## Option for different Algorithms (XXHASH, SHA-1) + Option for no verification
