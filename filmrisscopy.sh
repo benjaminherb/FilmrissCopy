@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # FilmrissCopy is a program for copying and verifying video / audio files for onset backups.
 # Copyright (C) <2021>  <Benjamin Herb>
 
@@ -27,14 +29,14 @@ echo
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
 echo "LAST UPDATED:	$(date -r "$scriptPath")"
 
-cd $(dirname "$scriptPath")
+cd "$(dirname "$scriptPath")"
 scriptPath=$(pwd)
-echo "LOCATION:	"$scriptPath"/"
-echo "LOGFILES:	"$scriptPath"/filmrisscopy_logs/"
-echo "PRESETS: 	"$scriptPath"/filmrisscopy_presets/"
+echo "LOCATION:	$scriptPath/"
+echo "LOGFILES:	$scriptPath/filmrisscopy_logs/"
+echo "PRESETS: 	$scriptPath/filmrisscopy_presets/"
 
-tempFolder=""$scriptPath"/filmrisscopy_temp"
-mkdir -p $tempFolder #Temp folder for storing Hashfiles during a process (to be used again)
+tempFolder="$scriptPath/filmrisscopy_temp"
+mkdir -p "$tempFolder" #Temp folder for storing Hashfiles during a process (to be used again)
 
 dateNow=$(date +"%Y%m%d")
 timeNow=$(date +"%H%M")
@@ -44,27 +46,27 @@ verificationMode="xxhash"
 function setProjectInfo() {
     echo
     echo "Choose Project Name"
-    read -e projectName
+    read -er projectName
 
     echo
     echo "Choose Shoot Date [Default: $dateNow]"
-    read -e projectDate
+    read -er projectDate
 
     if [ -z "$projectDate" ]; then
         projectDate=$dateNow
-        echo $dateNow
+        echo "$dateNow"
     fi
 
     echo
     echo "Name Shoot Day [eg. DT01]"
-    read -e projectShootDay
+    read -er projectShootDay
 }
 
-## Choose Ssource Directoryot -name
+## Choose Source Directory
 function setSource() {
     echo
     echo Choose Source Folder:
-    read -e sourceFolderTemp
+    read -er sourceFolderTemp
 
     if [[ ! -d "$sourceFolderTemp" ]]; then
         echo "$($RED)ERROR: $sourceFolderTemp IS NOT A VALID SOURCE$($NC)"
@@ -80,7 +82,7 @@ function setSource() {
     while [[ $loop == "true" ]]; do
         echo
         echo "Choose Additional Source Folder (Enter to Skip)"
-        read -e sourceFolderTemp
+        read -er sourceFolderTemp
 
         duplicateSource="false"
         for src in "${allSourceFolders[@]}"; do # Loops over source array to check if the new source is a douplicate
@@ -93,7 +95,7 @@ function setSource() {
         if [[ $sourceFolderTemp == "" ]]; then
             loop=false
         elif [ ! -d "$sourceFolderTemp" ]; then
-            echo "$($RED)ERROR: "$sourceFolderTemp" IS NOT A VALID SOURCE$($NC)"
+            echo "$($RED)ERROR: $sourceFolderTemp IS NOT A VALID SOURCE$($NC)"
         elif [[ $duplicateSource == "true" ]]; then
             echo "$($RED)ERROR: YOU CAN NOT SET THE SAME SOURCE TWICE IN A PROJECT$($NC)"
         else
@@ -108,14 +110,20 @@ function setSource() {
 function setReelName() {
     echo
     echo Source Reel Name:
-    read -e reelNameTemp
+    read -er reelNameTemp
+}
+
+## @TODO
+function setReelSpecifier() {
+    true
+    # TODO
 }
 
 ## Choose Destination Directory
 function setDestination() {
     echo
     echo Choose Destination Folder:
-    read -e destinationFolderTemp
+    read -er destinationFolderTemp
 
     if [[ ! -d "$destinationFolderTemp" ]]; then
         echo "$($RED)ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION $($NC)"
@@ -124,25 +132,25 @@ function setDestination() {
 
     allDestinationFolders=("$destinationFolderTemp")
 
-    duplicateDestination="false"
-    for dst in "${allDestinationFolders[@]}"; do # Loops over source array to check if the new source is a douplicate
-        if [ "${dst}" == "$destinationFolderTemp" ]; then
-            duplicateDestination="true"
-            break
-        fi
-    done
-
     loop="true"
     while [[ $loop == "true" ]]; do
         echo
         echo "Choose Additional Destination Folder (Enter to Skip)"
-        read -e destinationFolderTemp
+        read -er destinationFolderTemp
+
+        duplicateDestination="false"
+        for dst in "${allDestinationFolders[@]}"; do # Loops over dst array to check if the new source is a duplicate
+            if [ "${dst}" == "$destinationFolderTemp" ]; then
+                duplicateDestination="true"
+                break
+            fi
+        done
 
         if [[ $destinationFolderTemp == "" ]]; then
             loop=false
         elif [ ! -d "$destinationFolderTemp" ]; then
-            echo "$($RED)ERROR: "$destinationFolderTemp" IS NOT A VALID DESTINATION$($NC)"
-        elif [[ duplicateDestination == "true" ]]; then
+            echo "$($RED)ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION$($NC)"
+        elif [[ $duplicateDestination == "true" ]]; then
             echo "$($RED)ERROR: YOU CAN NOT SET THE SAME DESTINATION TWICE IN A PROJECT$($NC)"
         else
             allDestinationFolders+=("$destinationFolderTemp")
@@ -157,19 +165,19 @@ function setVerificationMethod() {
     echo "Choose your preferred Verification Method (xxHash is recommended)"
     echo
     echo "(0) EXIT  (1) XXHASH  (2) MD5  (3) SHA-1  (4) SIZE COMPARISON ONLY"
-    read -e verifCommand
+    read -er verifCommand
 
     if [[ ! $verifCommand == "0" ]] && [[ $verifCommand == "1" ]] && [[ $verifCommand == "2" ]] && [[ $verifCommand == "3" ]] && [[ $verifCommand == "4" ]]; then
         setVerificationMethod
     fi
 
-    if [ $verifCommand == "1" ]; then
+    if [ "$verifCommand" == "1" ]; then
         verificationMode="xxhash"
-    elif [ $verifCommand == "2" ]; then
+    elif [ "$verifCommand" == "2" ]; then
         verificationMode="md5"
-    elif [ $verifCommand == "3" ]; then
+    elif [ "$verifCommand" == "3" ]; then
         verificationMode="sha"
-    elif [ $verifCommand == "4" ]; then
+    elif [ "$verifCommand" == "4" ]; then
         verificationMode="size"
     fi
 }
@@ -178,15 +186,24 @@ function setVerificationMethod() {
 function loadPreset() {
     echo
     echo "(0) BACK  (1) LOAD LAST PRESET  (2) LOAD PRESET FROM FILE"
-    read -e presetCommand
+    read -er presetCommand
 
-    if [ ! $presetCommand == "0" ] && [ ! $presetCommand == "1" ] && [ ! $presetCommand == "2" ]; then loadPreset; fi
+    if [ ! "$presetCommand" == "0" ] && [ ! "$presetCommand" == "1" ] && [ ! "$presetCommand" == "2" ]; then loadPreset; fi
 
-    if [ $presetCommand == "1" ]; then
-        source "$scriptPath/filmrisscopy_preset_last.config"
-    elif [ $presetCommand == "2" ]; then
+    if [ "$presetCommand" == "1" ]; then
+        source "${scriptPath}/filmrisscopy_preset_last.config"
+    elif [ "$presetCommand" == "2" ]; then
+        echo
         echo "Choose Preset Path"
-        read -e presetPath
+        read -er presetPath
+
+        while [[ ! -f "$presetPath" ]] || [[ ! "$presetPath" == *".config" ]]; do
+            echo "$($RED)ERROR: \"$presetPath\" IS NOT A VALID PRESET FILE $($NC)"
+            echo
+            echo "Choose Preset Path"
+            read -er presetPath
+        done
+
         source "$presetPath"
     fi
 }
@@ -196,25 +213,25 @@ function verify() {
 
     echo
     echo "Choose a Filmrisscopy Log File"
-    read -e logFileVerification
+    read -er logFileVerification
 
     while [[ ! -f "$logFileVerification" ]] || [[ ! "$logFileVerification" == *"filmrisscopy_log.txt" ]]; do
         echo "$($RED)ERROR: \"$logFileVerification\" IS NOT A VALID FILMRISSCOPY LOG FILE $($NC)"
         echo
         echo "Choose filmrisscopy_log.txt File"
-        read -e logFileVerification
+        read -er logFileVerification
     done
 
     echo
     echo "Choose Copy to verify [Default: $(dirname "$logFileVerification")]"
-    read -e copyDirectoryVerification
+    read -er copyDirectoryVerification
 
     while [ ! "$copyDirectoryVerification" == "" ] && [ ! -d "$copyDirectoryVerification" ]; do
-        echo "$($RED)ERROR: "$copyDirectoryVerification" IS NOT A VALID DIRECTORY$($NC)"
+        echo "$($RED)ERROR: $copyDirectoryVerification IS NOT A VALID DIRECTORY$($NC)"
         copyDirectoryVerification="" # Resets so you can use the default again
         echo
         echo "Choose Copy to verify [Default: $(dirname "$logFileVerification")]"
-        read -e logFileVerification
+        read -er logFileVerification
     done
 
     if [[ "$copyDirectoryVerification" == "" ]]; then
@@ -223,43 +240,43 @@ function verify() {
     fi
 
     # get start and end of the checksums
-    startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logFileVerification" | cut -d: -f1) + 1))
-    endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logFileVerification" | cut -d: -f1) - 2))
+    startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logFileVerification" | cut --delimiter=: --field=1) + 1))
+    endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logFileVerification" | cut --delimiter=: --field=1) - 2))
 
-    logfilePath=""$copyDirectoryVerification"/"$dateNow"_"$timeNow"_filmrisscopy_verification_log.txt"
+    logfilePath="${copyDirectoryVerification}/${dateNow}_${timeNow}_filmrisscopy_verification_log.txt"
     echo "FILMRISSCOPY VERSION $version" >>"$logfilePath"
     echo "LOGFILE: $logFileVerification" >>"$logfilePath"
     echo "COPY DIRECTORY: $copyDirectoryVerification" >>"$logfilePath"
 
-    verificationModeName=$(grep "VERIFICATION" $logFileVerification | cut -d ' ' -f2)
+    verificationModeName=$(grep "VERIFICATION" "$logFileVerification" | cut --delimiter= ' ' --field=2)
 
-    if [ $verificationModeName == "xxHash" ]; then
+    if [ "$verificationModeName" == "xxHash" ]; then
         checksumUtility="xxhsum"
-    elif [ $verificationModeName == "SHA-1" ]; then
+    elif [ "$verificationModeName" == "SHA-1" ]; then
         checksumUtility="shasum"
-    elif [ $verificationModeName == "MD5" ]; then
+    elif [ "$verificationModeName" == "MD5" ]; then
         checksumUtility="md5sum"
     else
         echo "$($RED)ERROR: LOG FILE CONTAINS NO CHECKSUMS$($NC)"
         baseLoop
     fi
 
-    echo "VERIFICATION: "$verificationModeName >>"$logfilePath"
+    echo "VERIFICATION: $verificationModeName" >>"$logfilePath"
     echo >>"$logfilePath"
     echo "CHECKSUM CALCULATIONS ON SOURCE:" >>"$logfilePath"
-    checksumFile="$tempFolder"/"$checksumUtility"_"$dateNow$timeNow"
+    checksumFile="${tempFolder}/${checksumUtility}_${dateNow}${timeNow}"
 
-    headerLength=$(grep -n "VERIFICATION: " $logfilePath | cut -d: -f1)
+    headerLength=$(grep -n "VERIFICATION: " "$logfilePath" | cut --delimiter=: --field=1)
 
     sed -n $startLineChecksum','$endLineChecksum'p' "$logFileVerification" | tee "$checksumFile" >>"$logfilePath" 2>&1
 
     destinationFolderFullPath=$copyDirectoryVerification
-    sourceFolder=$(grep "SOURCE: " $logFileVerification | cut -d ' ' -f2)
+    sourceFolder=$(grep "SOURCE: " "$logFileVerification" | cut --delimiter= ' ' --field=2)
 
-    logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Used for the Progress
+    logFileLineCount=$(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) # Used for the Progress
     checksumStartTime=$(date +%s)
-    totalFileCount=$(find "$copyDirectoryVerification" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name "*_filmrisscopy_verification_log.txt" -not -name ".DS_Store" \) | wc -l)
-    totalFileSize=$(du -msh "$copyDirectoryVerification" | cut -f1)
+    totalFileCount=$(find "$copyDirectoryVerification" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name "*_filmrisscopy_verification_log.txt" -not -name ".DS_Store" \) | wc --lines)
+    totalFileSize=$(du --block-size=1M --summarize --human-readable "$copyDirectoryVerification" | cut --field=1)
 
     checksumComparison
     endScreen
@@ -271,8 +288,8 @@ function run() {
     runMode=copy # Can be Copy, Checksum or RSync
     echo
 
-    totalByteSpace=$(du -s "$sourceFolder" | cut -f1) # Check if there is enough Space left
-    destinationFreeSpace=$(df --block-size=1 --output=avail "$destinationFolder" | cut -d$'\n' -f2)
+    totalByteSpace=$(du --summarize "$sourceFolder" | cut --field=1) # Check if there is enough Space left
+    destinationFreeSpace=$(df --block-size=1 --output=avail "$destinationFolder" | cut --delimiter=$'\n' --field=2)
 
     if [[ $(($destinationFreeSpace - $totalByteSpace)) -lt 20 ]]; then
         echo "$($RED)ERROR: NOT ENOUGH DISK SPACE LEFT IN $destinationFolder$($NC)"
@@ -286,17 +303,17 @@ function run() {
     else
         echo "$($RED)ERROR: DIRECTORY ALREAD EXISTS IN THE DESTINATION FOLDER$($NC)"
         echo
-        fileDifference=$(($(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l) - $(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)))
+        fileDifference=$(($(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc --lines) - $(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc --lines)))
 
         if [[ $fileDifference == 0 ]]; then
             echo Source and Destination have the same Size
 
             echo "Run Checksum Calculations? (y/n)"
-            read -e rerunChecksum
+            read -er rerunChecksum
 
             while [ ! "$rerunChecksum" == "y" ] && [ ! "$rerunChecksum" == "n" ] && [ -z "$rerunChecksum" ]; do
                 echo "Run Checksum Calculations? (y/n)"
-                read -e rerunChecksum
+                read -er rerunChecksum
             done
 
             if [[ $rerunChecksum == "y" ]]; then
@@ -314,11 +331,11 @@ function run() {
                 echo "There are $fileDifference Files more in the Destination than in the Source Directory. The Folder is probably already in use for something different!"
             fi
             echo "Run RSYNC to copy the missing Files? (Needs Sudo Privileges) (y/n)"
-            read -e runRsync
+            read -er runRsync
 
             while [ ! $runRsync == "y" ] && [ ! $runRsync == "n" ]; do
                 echo "Run RSYNC to copy the missing Files? (y/n)"
-                read -e runRsync
+                read -er runRsync
             done
             echo
 
@@ -330,10 +347,10 @@ function run() {
     log # Create Log File and Write Header
 
     # Used to position lines in the log file
-    headerLength=$(grep -n "VERIFICATION: " $logfilePath | cut -d: -f1)
+    headerLength=$(grep -n "VERIFICATION: " $logfilePath | cut --delimiter=: --field=1)
 
-    totalFileCount=$(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)
-    totalFileSize=$(du -msh "$sourceFolder" | cut -f1)
+    totalFileCount=$(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc --lines)
+    totalFileSize=$(du -msh "$sourceFolder" | cut --field=1)
     copyStartTime=$(date +%s)
 
     if [[ $runMode == "copy" ]]; then
@@ -414,12 +431,12 @@ function copyStatus() {
     while [ true ]; do
         sleep 1 # Change if it slows down the process to much / if more accuracy is needed
 
-        copiedFileCount=$(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)
+        copiedFileCount=$(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc --lines)
         currentTime=$(date +%s)
         elapsedTime=$(($currentTime - $copyStartTime))
 
-        if [[ ! $copiedFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then                                     # Make sure the calc doesnt divide through 0
-            aproxTime=$(echo "(($elapsedTime/($copiedFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut -d. -f1) # Calculate aproxTime with bc -l and cut the decimals
+        if [[ ! $copiedFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then                                                     # Make sure the calc doesnt divide through 0
+            aproxTime=$(echo "(($elapsedTime/($copiedFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut --delimiter=. --field=1) # Calculate aproxTime with bc -l and cut the decimals
         fi
         if [[ $aproxTime == "" ]]; then aproxTime="0"; fi
 
@@ -439,7 +456,7 @@ function checksum() {
     echo >>"$logfilePath"
     echo "CHECKSUM CALCULATIONS ON SOURCE:" >>"$logfilePath"
     cd "$sourceFolder"
-    logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Used for the Progress
+    logFileLineCount=$(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) # Used for the Progress
 
     checksumStatus &
 
@@ -452,6 +469,7 @@ function checksum() {
 
 }
 
+## Compare Checksums to Copy
 function checksumComparison() {
 
     echo
@@ -461,7 +479,7 @@ function checksumComparison() {
     echo >>"$logfilePath"
     echo "COMPARING CHECKSUM TO COPY:" >>"$logfilePath"
 
-    logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Updated for the new Progress
+    logFileLineCount=$(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) # Updated for the new Progress
     cd "$destinationFolderFullPath"
     cd "$(basename "$sourceFolder")" # Go into the copied source folder to get the same relative path for the checksum verification
 
@@ -489,12 +507,12 @@ function checksumStatus() {
     while [[ true ]]; do
         sleep 1
 
-        checksumFileCount=$(($(wc -l "$logfilePath" | cut --delimiter=" " -f1) - $logFileLineCount))
+        checksumFileCount=$(($(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) - $logFileLineCount))
         currentTime=$(date +%s)
         elapsedTime=$(($currentTime - $checksumStartTime))
 
-        if [[ ! $checksumFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then                                     # Make sure the calc doesnt divide through 0
-            aproxTime=$(echo "(($elapsedTime/($checksumFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut -d. -f1) # Calculate aproxTime with bc -l and cut the decimals
+        if [[ ! $checksumFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then                                                     # Make sure the calc doesnt divide through 0
+            aproxTime=$(echo "(($elapsedTime/($checksumFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut --delimiter=. --field=1) # Calculate aproxTime with bc -l and cut the decimals
         fi
         if [[ $aproxTime == "" ]]; then aproxTime="0"; fi
 
@@ -511,12 +529,12 @@ function checksumComparisonStatus() {
     while [[ true ]]; do
         sleep 1
 
-        checksumFileCount=$(($(wc -l "$logfilePath" | cut --delimiter=" " -f1) - $logFileLineCount))
+        checksumFileCount=$(($(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) - $logFileLineCount))
         currentTime=$(date +%s)
         elapsedTime=$(($currentTime - $checksumStartTime))
 
-        if [[ ! $checksumFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then                                     # Make sure the calc doesnt divide through 0
-            aproxTime=$(echo "(($elapsedTime/($checksumFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut -d. -f1) # Calculate aproxTime with bc -l and cut the decimals
+        if [[ ! $checksumFileCount == "0" ]] && [[ ! $totalFileCount == "0" ]]; then                                                     # Make sure the calc doesnt divide through 0
+            aproxTime=$(echo "(($elapsedTime/($checksumFileCount/$totalFileCount)))-$elapsedTime" | bc -l | cut --delimiter=. --field=1) # Calculate aproxTime with bc -l and cut the decimals
         fi
         if [[ $aproxTime == "" ]]; then aproxTime="0"; fi
 
@@ -659,7 +677,7 @@ function startupSetup() {
 
     echo
     echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
-    read -e usePreset
+    read -er usePreset
     if [ ! $usePreset == "0" ] && [ ! $usePreset == "1" ] && [ ! $usePreset == "2" ] && [ ! $usePreset == "3" ]; then
         startupSetup
     fi
@@ -685,7 +703,7 @@ function startupSetup() {
     then
         echo
         echo "Choose Preset Path"
-        read -e presetPath
+        read -er presetPath
         source $presetPath
     fi
 }
@@ -701,7 +719,7 @@ function editProject() {
 
         echo
         echo "(0) BACK  (1) EDIT PROJECT INFO  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) CHANGE VERIFICATION METHOD (5) LOAD PRESET"
-        read -e editCommand
+        read -er editCommand
 
         if [ $editCommand == "1" ]; then setProjectInfo; fi
         if [ $editCommand == "2" ]; then setSource; fi
@@ -772,10 +790,10 @@ function endScreen() {
     echo
     # echo
     # echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
-    # read -e quitFRC
+    # read -er quitFRC
     # while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
     #     echo "Do you want to quit the Program? (y/n)"
-    #     read -e quitFRC
+    #     read -er quitFRC
     # done
     #
     # if [[ $quitFRC == "n" ]]; then return; fi
@@ -784,10 +802,10 @@ function endScreen() {
     echo "Exiting FilmrissCopy"
     echo
     echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
-    read -e overWriteLastPreset
+    read -er overWriteLastPreset
     while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
         echo "Update last preset with the current Setup? (y/n)"
-        read -e overWriteLastPreset
+        read -er overWriteLastPreset
     done
     if [[ $overWriteLastPreset == "y" ]]; then
         writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
@@ -807,7 +825,7 @@ function baseLoop() {
 
         echo
         echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP  (4) VERIFY"
-        read -e command
+        read -er command
 
         if [ $command == "1" ]; then
             runJobs
