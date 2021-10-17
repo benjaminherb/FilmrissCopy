@@ -407,7 +407,7 @@ function run() {
         checksumUtility="shasum"
     fi
 
-    checksumFile="$tempFolder"/"$checksumUtility"_"$reelName"_"$dateNow$timeNow" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
+    checksumFile="${tempFolder}/${checksumUtility}_${reelName}_${dateNow}${timeNow}" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
 
     checksum
 
@@ -420,21 +420,21 @@ function run() {
     echo # End of the Job
     if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]]; then
         echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
-        sed -i "$(($headerLength + 3)) a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "$(($headerLength + 3)) a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / $totalByteSpace )\n" "$logfilePath" >/dev/null 2>&1
     else
         echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
-        sed -i "$(($headerLength + 3)) a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
+        sed -i "$(($headerLength + 3)) a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / $totalByteSpace )\n" "$logfilePath" >/dev/null 2>&1
     fi
 
     sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/I,+1d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
 
-    mkdir -p "$scriptPath"/filmrisscopy_logs/
-    cp "$logfilePath" "$scriptPath"/filmrisscopy_logs/ # Backup logs to a folder in the scriptpath
+    mkdir -p "$scriptPath/filmrisscopy_logs/"
+    cp "$logfilePath" "$scriptPath/filmrisscopy_logs/" # Backup logs to a folder in the scriptpath
 }
 
 ## Copy progress
 function copyStatus() {
-    while [ true ]; do
+    while true; do
         sleep 1 # Change if it slows down the process to much / if more accuracy is needed
 
         copiedFileCount=$(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc --lines)
@@ -466,7 +466,7 @@ function checksum() {
 
     checksumStatus &
 
-    (find -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec $checksumUtility '{}' \; | tee "$checksumFile" >>"$logfilePath" 2>&1)
+    (find . -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec $checksumUtility '{}' \; | tee "$checksumFile" >>"$logfilePath" 2>&1)
 
     sleep 2
     kill $!
@@ -498,7 +498,7 @@ function checksumComparison() {
     echo
 
     checksumPassedFiles=$(grep -c ": OK" "$logfilePath") # Checks wether the output to the logfile were all "OK" or not
-    if [[ $checksumPassedFiles == $totalFileCount ]]; then
+    if [[ $checksumPassedFiles == "$totalFileCount" ]]; then
         echo "${BOLD}NO CHECKSUM ERRORS!${NORMAL}"
         sed -i "$(($headerLength + 1)) a NO CHECKSUM ERRORS!\n" "$logfilePath" >/dev/null 2>&1
     else
@@ -510,7 +510,7 @@ function checksumComparison() {
 
 ## Checksum Progress
 function checksumStatus() {
-    while [[ true ]]; do
+    while true; do
         sleep 1
 
         checksumFileCount=$(($(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) - $logFileLineCount))
@@ -532,7 +532,7 @@ function checksumStatus() {
 
 ## Checksum Comparison progress
 function checksumComparisonStatus() {
-    while [[ true ]]; do
+    while true; do
         sleep 1
 
         checksumFileCount=$(($(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) - $logFileLineCount))
@@ -573,32 +573,32 @@ function runStatus() {
 
 ## Log
 function log() {
-    logfile=$projectDate"_"$timeNow"_"$currentJobNumber"_"$jobNumber"_""$projectName""_filmrisscopy_log.txt"
-    logfilePath="$destinationFolderFullPath"/$logfile
-    echo FILMRISSCOPY VERSION $version >>"$logfilePath"
-    echo PROJECT NAME: $projectName >>"$logfilePath"
-    echo SHOOT DAY: $projectShootDay >>"$logfilePath"
-    echo PROJECT DATE: $projectDate >>"$logfilePath"
-    echo SOURCE: $sourceFolder >>"$logfilePath"
-    echo DESTINATION: $destinationFolderFullPath >>"$logfilePath"
-    echo JOB: $currentJobNumber / $jobNumber >>"$logfilePath"
-    echo RUNMODE: $runMode >>"$logfilePath"
-    echo DATE/TIME: $dateNow"_"$timeNow >>"$logfilePath"
+    logfile="${projectDate}_${timeNow}_${currentJobNumber}_${jobNumber}_${projectName}_filmrisscopy_log.txt"
+    logfilePath="$destinationFolderFullPath/$logfile"
+    echo "FILMRISSCOPY VERSION $version" >>"$logfilePath"
+    echo "PROJECT NAME: $projectName" >>"$logfilePath"
+    echo "SHOOT DAY: $projectShootDay" >>"$logfilePath"
+    echo "PROJECT DATE: $projectDate" >>"$logfilePath"
+    echo "SOURCE: $sourceFolder" >>"$logfilePath"
+    echo "DESTINATION: $destinationFolderFullPath" >>"$logfilePath"
+    echo "JOB: $currentJobNumber / $jobNumber" >>"$logfilePath"
+    echo "RUNMODE: $runMode" >>"$logfilePath"
+    echo "DATE/TIME: ${dateNow}_${timeNow}" >>"$logfilePath"
 
     if [ $verificationMode == "md5" ]; then
-        echo VERIFICATION: MD5 >>"$logfilePath"
+        echo "VERIFICATION: MD5" >>"$logfilePath"
     elif [ $verificationMode == "xxhash" ]; then
-        echo VERIFICATION: xxHash >>"$logfilePath"
+        echo "VERIFICATION: xxHash" >>"$logfilePath"
     elif [ $verificationMode == "sha" ]; then
-        echo VERIFICATION: SHA-1 >>"$logfilePath"
+        echo "VERIFICATION: SHA-1" >>"$logfilePath"
     fi
 
     echo >>"$logfilePath"
-    echo THE COPY PROCESS WAS NOT COMPLETED CORRECTLY >>"$logfilePath" # Will be Deleted after the Job is finished
+    echo "THE COPY PROCESS WAS NOT COMPLETED CORRECTLY" >>"$logfilePath" # Will be Deleted after the Job is finished
     echo >>"$logfilePath"
     cd "$sourceFolder"
     cd ..
-    echo FOLDER STRUCTURE: >>"$logfilePath"
+    echo "FOLDER STRUCTURE:" >>"$logfilePath"
     find "./${sourceBaseName}/" ! -path . -type d >>"$logfilePath" # Print Folder Structure
 }
 
@@ -685,7 +685,7 @@ function startupSetup() {
     echo
     echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
     read -er usePreset
-    if [ ! $usePreset == "0" ] && [ ! $usePreset == "1" ] && [ ! $usePreset == "2" ] && [ ! $usePreset == "3" ]; then
+    if [ ! "$usePreset" == "0" ] && [ ! "$usePreset" == "1" ] && [ ! "$usePreset" == "2" ] && [ ! "$usePreset" == "3" ]; then
         startupSetup
     fi
 
@@ -711,7 +711,7 @@ function startupSetup() {
         echo
         echo "Choose Preset Path"
         read -er presetPath
-        source $presetPath
+        source "$presetPath"
     fi
 }
 
@@ -728,12 +728,12 @@ function editProject() {
         echo "(0) BACK  (1) EDIT PROJECT INFO  (2) EDIT SOURCE  (3) EDIT DESTINATION  (4) CHANGE VERIFICATION METHOD (5) LOAD PRESET"
         read -er editCommand
 
-        if [ $editCommand == "1" ]; then setProjectInfo; fi
-        if [ $editCommand == "2" ]; then setSource; fi
-        if [ $editCommand == "3" ]; then setDestination; fi
-        if [ $editCommand == "4" ]; then setVerificationMethod; fi
-        if [ $editCommand == "5" ]; then loadPreset; fi
-        if [ $editCommand == "0" ]; then loop="false"; fi
+        if [ "$editCommand" == "1" ]; then setProjectInfo; fi
+        if [ "$editCommand" == "2" ]; then setSource; fi
+        if [ "$editCommand" == "3" ]; then setDestination; fi
+        if [ "$editCommand" == "4" ]; then setVerificationMethod; fi
+        if [ "$editCommand" == "5" ]; then loadPreset; fi
+        if [ "$editCommand" == "0" ]; then loop="false"; fi
     done
 }
 
@@ -810,7 +810,7 @@ function endScreen() {
     echo
     echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
     read -er overWriteLastPreset
-    while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
+    while [ ! "$overWriteLastPreset" == "y" ] && [ ! "$overWriteLastPreset" == "n" ]; do
         echo "Update last preset with the current Setup? (y/n)"
         read -er overWriteLastPreset
     done
@@ -825,7 +825,7 @@ function endScreen() {
 }
 
 function baseLoop() {
-    while [ true ]; do
+    while true; do
 
         statusMode="normal" # choose how the Status will be shown (normal or edit)
         printStatus
@@ -834,25 +834,25 @@ function baseLoop() {
         echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP  (4) VERIFY"
         read -er command
 
-        if [ $command == "1" ]; then
+        if [ "$command" == "1" ]; then
             runJobs
         fi
 
-        if [ $command == "2" ]; then
+        if [ "$command" == "2" ]; then
             editProject
         fi
 
-        if [ $command == "3" ]; then
+        if [ "$command" == "3" ]; then
             setProjectInfo
             setSource
             setDestination
         fi
 
-        if [ $command == "4" ]; then
+        if [ "$command" == "4" ]; then
             verify
         fi
 
-        if [ $command == "0" ]; then
+        if [ "$command" == "0" ]; then
             endScreen
         fi
     done
