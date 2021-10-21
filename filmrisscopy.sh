@@ -250,7 +250,7 @@ function verify() {
     echo "LOGFILE: $logFileVerification" >>"$logfilePath"
     echo "COPY DIRECTORY: $copyDirectoryVerification" >>"$logfilePath"
 
-    verificationModeName=$(grep "VERIFICATION" "$logFileVerification" | cut --delimiter= ' ' --field=2)
+    verificationModeName=$(grep "VERIFICATION" "$logFileVerification" | cut --delimiter=' ' --field=2)
 
     if [ "$verificationModeName" == "xxHash" ]; then
         checksumUtility="xxhsum"
@@ -259,7 +259,7 @@ function verify() {
     elif [ "$verificationModeName" == "MD5" ]; then
         checksumUtility="md5sum"
     else
-        echo "$($RED)ERROR: LOG FILE CONTAINS NO CHECKSUMS$($NC)"
+        echo "$($RED)ERROR: LOG FILE [$logfilePath] CONTAINS NO CHECKSUMS$($NC)"
         baseLoop
     fi
 
@@ -273,7 +273,7 @@ function verify() {
     sed -n $startLineChecksum','$endLineChecksum'p' "$logFileVerification" | tee "$checksumFile" >>"$logfilePath" 2>&1
 
     destinationFolderFullPath=$copyDirectoryVerification
-    sourceFolder=$(grep "SOURCE: " "$logFileVerification" | cut --delimiter= ' ' --field=2)
+    sourceFolder=$(grep "SOURCE: " "$logFileVerification" | cut --delimiter=' ' --field=2)
 
     logFileLineCount=$(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) # Used for the Progress
     checksumStartTime=$(date +%s)
