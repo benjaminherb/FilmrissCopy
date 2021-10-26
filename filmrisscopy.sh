@@ -573,13 +573,17 @@ function runStatus() {
 
 ## Log
 function log() {
+    sourceDevice=$(df "$sourceFolder" | tail -1 | cut --delimiter=' ' --field=1 | sed 's/[0-9]//g') # Get Device
+    echo $sourceDevice
+    sourceSerial=$(lsblk -n -o SERIAL "$sourceDevice" | head -1)
+
     logfile="${projectDate}_${timeNow}_${currentJobNumber}_${jobNumber}_${projectName}_filmrisscopy_log.txt"
     logfilePath="$destinationFolderFullPath/$logfile"
     echo "FILMRISSCOPY VERSION $version" >>"$logfilePath"
     echo "PROJECT NAME: $projectName" >>"$logfilePath"
     echo "SHOOT DAY: $projectShootDay" >>"$logfilePath"
     echo "PROJECT DATE: $projectDate" >>"$logfilePath"
-    echo "SOURCE: $sourceFolder" >>"$logfilePath"
+    echo "SOURCE ($sourceSerial): $sourceFolder" >>"$logfilePath"
     echo "DESTINATION: $destinationFolderFullPath" >>"$logfilePath"
     echo "JOB: $currentJobNumber / $jobNumber" >>"$logfilePath"
     echo "RUNMODE: $runMode" >>"$logfilePath"
