@@ -410,8 +410,7 @@ function run() {
     currentTime=$(date +%s)
     elapsedTime=$(($currentTime - $copyStartTime))
 
-    timeTemp=$elapsedTime
-    elapsedTimeFormatted=$(formatTime)
+    elapsedTimeFormatted=$(formatTime $elapsedTime)
 
     echo # End of the Job
     if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]]; then
@@ -442,10 +441,8 @@ function copyStatus() {
         fi
         if [[ $aproxTime == "" ]]; then aproxTime="0"; fi
 
-        timeTemp=$elapsedTime
-        elapsedTimeFormatted=$(formatTime)
-        timeTemp=$aproxTime
-        aproxTimeFormatted=$(formatTime)
+        elapsedTimeFormatted=$(formatTime $elapsedTime)
+        aproxTimeFormatted=$(formatTime $aproxTime)
 
         echo -ne "$copiedFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted"\\r
     done
@@ -462,7 +459,7 @@ function checksum() {
 
     checksumStatus &
 
-    find . -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec $checksumUtility '{}' + >>"$logfilePath"
+    find . -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec $checksumUtility '{}' + 2>>/dev/null 1>>"$logfilePath"
 
     sleep 2
     kill $!
@@ -521,10 +518,8 @@ function checksumStatus() {
         fi
         if [[ $aproxTime == "" ]]; then aproxTime="0"; fi
 
-        timeTemp=$elapsedTime
-        elapsedTimeFormatted=$(formatTime)
-        timeTemp=$aproxTime
-        aproxTimeFormatted=$(formatTime)
+        elapsedTimeFormatted=$(formatTime $elapsedTime)
+        aproxTimeFormatted=$(formatTime $aproxTime)
         echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted\\r"
     done
 }
@@ -543,10 +538,8 @@ function checksumComparisonStatus() {
         fi
         if [[ $aproxTime == "" ]]; then aproxTime="0"; fi
 
-        timeTemp=$elapsedTime
-        elapsedTimeFormatted=$(formatTime)
-        timeTemp=$aproxTime
-        aproxTimeFormatted=$(formatTime)
+        elapsedTimeFormatted=$(formatTime $elapsedTime)
+        aproxTimeFormatted=$(formatTime $aproxTime)
 
         echo -ne "$checksumFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted\r"
     done
@@ -615,11 +608,16 @@ function log() {
     find "./${sourceBaseName}/" ! -path . -type d >>"$logfilePath" # Print Folder Structure
 }
 
-## Changes seconds to h:m:s, change $tempTime to use, and save the output in a variable
+## Changes seconds to h:m:s, change $temp to use, and save the output in a variable
 function formatTime() {
-    h=$(($timeTemp / 3600))
-    m=$(($timeTemp % 3600 / 60))
-    s=$(($timeTemp % 60))
+    local time="$1"
+    # Sets default value if time is done
+    if ! [[ "$time" =~ ^[0-9]+$ ]]; then
+        local time=0
+    fi
+    h=$(($time / 3600))
+    m=$(($time % 3600 / 60))
+    s=$(($time % 60))
     printf "%02d:%02d:%02d" $h $m $s
 }
 
@@ -787,8 +785,7 @@ function runJobs() {
 
         elapsedTime=$(($endTimeAllJobs - $startTimeAllJobs))
 
-        timeTemp=$elapsedTime
-        elapsedTimeFormatted=$(formatTime)
+        elapsedTimeFormatted=$(formatTime $elapsedTime)
 
         echo
         if [ $jobNumber -eq 1 ]; then
