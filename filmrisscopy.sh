@@ -241,10 +241,6 @@ function verify() {
         echo "$copyDirectoryVerification"
     fi
 
-    # get start and end of the checksums
-    startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logFileVerification" | cut --delimiter=: --field=1) + 1))
-    endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logFileVerification" | cut --delimiter=: --field=1) - 2))
-
     logfilePath="${copyDirectoryVerification}/${dateNow}_${timeNow}_filmrisscopy_verification_log.txt"
     echo "FILMRISSCOPY VERSION $version" >>"$logfilePath"
     echo "LOGFILE: $logFileVerification" >>"$logfilePath"
@@ -268,9 +264,9 @@ function verify() {
     echo "CHECKSUM CALCULATIONS ON SOURCE:" >>"$logfilePath"
     checksumFile="${tempFolder}/${checksumUtility}_${dateNow}${timeNow}"
 
-    headerLength=$(grep -n "VERIFICATION: " "$logfilePath" | cut --delimiter=: --field=1)
+    getChecksums "$logFileVerification" >>"$logfilePath" # Returns $checksums Variable
 
-    sed -n $startLineChecksum','$endLineChecksum'p' "$logFileVerification" | tee "$checksumFile" >>"$logfilePath" 2>&1
+    headerLength=$(grep -n "VERIFICATION: " "$logfilePath" | cut --delimiter=: --field=1)
 
     destinationFolderFullPath=$copyDirectoryVerification
     sourceFolder=$(grep "SOURCE: " "$logFileVerification" | cut --delimiter=' ' --field=2)
@@ -466,7 +462,7 @@ function checksum() {
 
     checksumStatus &
 
-    (find . -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec $checksumUtility '{}' \; | tee "$checksumFile" >>"$logfilePath" 2>&1)
+    find . -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) -exec $checksumUtility '{}' + >>"$logfilePath"
 
     sleep 2
     kill $!
@@ -484,6 +480,7 @@ function checksumComparison() {
     echo "${BOLD}COMPARING CHECKSUM TO COPY...${NORMAL}"
     echo >>"$logfilePath"
     echo "COMPARING CHECKSUM TO COPY:" >>"$logfilePath"
+    checksums=$(getChecksums "$logfilePath")
 
     logFileLineCount=$(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) # Updated for the new Progress
     cd "$destinationFolderFullPath"
@@ -491,7 +488,9 @@ function checksumComparison() {
 
     checksumComparisonStatus &
 
-    "$checksumUtility" -c "$checksumFile" >>"$logfilePath" 2>&1 # Command to verify using the checksumFile
+    # Command to verify using the checksumFile, takes the output of the checksums variable
+    #(from the log file) and pipes the result to the checksum Utility
+    echo "$checksums" | "$checksumUtility" -c >>"$logfilePath" 2>&1
 
     sleep 2
     kill $!
@@ -571,11 +570,21 @@ function runStatus() {
     echo
 }
 
+## Get Checksums from Filmrisscopy Log and prints them
+function getChecksums() {
+    # Get start and end of the checksums from the given logfile
+    local logFile="$1"
+    local startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logFile" | cut --delimiter=: --field=1) + 1))
+    local endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logFile" | cut --delimiter=: --field=1) - 2))
+
+    sed -n $startLineChecksum','$endLineChecksum'p' "$logFile"
+}
+
 ## Log
 function log() {
-    sourceDevice=$(df "$sourceFolder" | tail -1 | cut --delimiter=' ' --field=1 | sed 's/[0-9]//g') # Get Device
-    echo $sourceDevice
-    sourceSerial=$(lsblk -n -o SERIAL "$sourceDevice" | head -1)
+    #sourceDevice=$(df "$sourceFolder" | tail -1 | cut --delimiter=' ' --field=1 | sed 's/[0-9]//g') # Get Device
+    #echo $sourceDevice
+    #sourceSerial=$(lsblk -n -o SERIAL "$sourceDevice" | head -1)
 
     logfile="${projectDate}_${timeNow}_${currentJobNumber}_${jobNumber}_${projectName}_filmrisscopy_log.txt"
     logfilePath="$destinationFolderFullPath/$logfile"
@@ -583,7 +592,7 @@ function log() {
     echo "PROJECT NAME: $projectName" >>"$logfilePath"
     echo "SHOOT DAY: $projectShootDay" >>"$logfilePath"
     echo "PROJECT DATE: $projectDate" >>"$logfilePath"
-    echo "SOURCE ($sourceSerial): $sourceFolder" >>"$logfilePath"
+    echo "SOURCE: $sourceFolder" >>"$logfilePath"
     echo "DESTINATION: $destinationFolderFullPath" >>"$logfilePath"
     echo "JOB: $currentJobNumber / $jobNumber" >>"$logfilePath"
     echo "RUNMODE: $runMode" >>"$logfilePath"
@@ -872,6 +881,8 @@ baseLoop
 
 ## @TODO Add Drive Specifier
 ## @TODO Speedup / Fix RSYNC
+## @TODO Batch Verify
+## @TODO Add function for better output to logfile / screen
 ## Add Copied Status
 ## Make Checksum Calculations in the Source folder first
 ## Option for different Algorithms (XXHASH, SHA-1) + Option for no verification
