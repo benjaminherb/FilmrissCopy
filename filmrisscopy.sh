@@ -423,8 +423,6 @@ function run() {
 
     sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/I,+1d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
 
-    mkdir -p "$scriptPath/filmrisscopy_logs/"
-    cp "$logfilePath" "$scriptPath/filmrisscopy_logs/" # Backup logs to a folder in the scriptpath
 }
 
 ## Copy progress
@@ -805,20 +803,10 @@ function runJobs() {
 
 function endScreen() {
     echo
-    # echo
-    # echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
-    # read -er quitFRC
-    # while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
-    #     echo "Do you want to quit the Program? (y/n)"
-    #     read -er quitFRC
-    # done
-    #
-    # if [[ $quitFRC == "n" ]]; then return; fi
-
     echo
     echo "Exiting FilmrissCopy"
     echo
-    echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
+    echo "Update last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
     read -er overWriteLastPreset
     while [ ! "$overWriteLastPreset" == "y" ] && [ ! "$overWriteLastPreset" == "n" ]; do
         echo "Update last preset with the current Setup? (y/n)"
@@ -830,6 +818,12 @@ function endScreen() {
         echo "Preset Updated"
     fi
     echo
+
+    if [ -f "$logfilePath" ]; then
+        mkdir -p "$scriptPath/filmrisscopy_logs/"
+        cp "$logfilePath" "$scriptPath/filmrisscopy_logs/" # Backup logs to a folder in the scriptpath
+    fi
+
     exit
 
 }
@@ -876,17 +870,16 @@ trap endScreen INT
 
 baseLoop
 
+## PRIO 1
+## @TODO Capture STDERR of checksum calculation
 ## @TODO Add Drive Specifier
-## @TODO Speedup / Fix RSYNC
 ## @TODO Batch Verify
 ## @TODO Add function for better output to logfile / screen
-## Add Copied Status
-## Make Checksum Calculations in the Source folder first
-## Option for different Algorithms (XXHASH, SHA-1) + Option for no verification
-## MHL Implementation
-## Implement Telegram Bot
-## Add Option for verifying Checksum using a FilmrissCopyLogFileTM
-## Default Preset
-## Log Times of individual Tasks
-## Change Loop Input Method
-## Calculate Source Checksum Once for all Destinations
+## @TODO Option for no verification
+
+## PRIO 2
+## @TODO MHL Implementation
+## @TODO Implement Telegram Bot
+## @TODO Default Preset
+## @TODO Log Times of individual Tasks
+## @TODO Calculate Source Checksum Once for all Destinations
