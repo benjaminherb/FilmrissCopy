@@ -655,11 +655,31 @@ function getChecksums() {
     sed -n $startLineChecksum','$endLineChecksum'p' "$logfile"
 }
 
+## Get SNR by finding the partition of the sourcedir, comparing it to available disks and then runnign lsblk
+function getSerial() {
+
+    local availableDisks=($(lsblk | grep disk | cut --delimiter=" " --field=1))           # Get all available disks
+    local sourcePartition=$(df "$sourceFolder" | tail -1 | cut --delimiter=' ' --field=1) # Get Partition
+    local sourceDevice
+
+    for d in "${availableDisks[@]}"; do
+        if [[ "*$sourcePartition*" == *"$d"* ]]; then
+            sourceDevice="/dev/$d"
+            break
+        fi
+    done
+
+    echo $sourceDevice
+    local sourceSerial=$(lsblk -n -o SERIAL "$sourceDevice" | head -1)
+
+    if [ ! "$sourceSerial" == "" ]; then
+        echo "SOURCE SERIAL: $sourceSerial" >>"$logfilePath"
+    fi
+}
+
 ## Log
 function log() {
-    #sourceDevice=$(df "$sourceFolder" | tail -1 | cut --delimiter=' ' --field=1 | sed 's/[0-9]//g') # Get Device
-    #echo $sourceDevice
-    #sourceSerial=$(lsblk -n -o SERIAL "$sourceDevice" | head -1)
+
     if [ "${#allDestinationFolders[@]}" -gt 1 ]; then # if there are more than one copys made, adds an identifier
         local current_copy_num=$((($currentJobNumber - 1) % "${#allDestinationFolders[@]}" + 1))
         logfile="${dateNow}_${timeNow}_${projectName}_${reelName}_${current_copy_num}_filmrisscopy_log.txt"
@@ -673,6 +693,9 @@ function log() {
     echo "SHOOT DAY: $projectShootDay" >>"$logfilePath"
     echo "PROJECT DATE: $projectDate" >>"$logfilePath"
     echo "SOURCE: $sourceFolder" >>"$logfilePath"
+
+    getSerial >/dev/null 2>&1
+
     echo "DESTINATION: $destinationFolderFullPath" >>"$logfilePath"
     echo "JOB: $currentJobNumber / $jobNumber" >>"$logfilePath"
     echo "RUNMODE: $runMode" >>"$logfilePath"
@@ -962,10 +985,7 @@ baseLoop
 
 ## PRIO 1
 ## @TODO Capture STDERR of checksum calculation
-## @TODO Add Drive Specifier
-## @TODO Batch Verify
 ## @TODO Add function for better output to logfile / screen
-## @TODO Option for no verification
 
 ## PRIO 2
 ## @TODO MHL Implementation
