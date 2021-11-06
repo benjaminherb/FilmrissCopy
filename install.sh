@@ -2,10 +2,13 @@
 
 # Installs filmrisscopy in ~/bin and makes it executable
 
-echo "Installing FilmrissCopy V0.2"
+BOLD=$(tput bold)
+NORMAL=$(tput sgr0)
+
+echo "${BOLD}Installing FilmrissCopy V0.2${NORMAL}"
 echo
 
-echo "Checking dependencies..."
+echo "${BOLD}Checking dependencies...${NORMAL}"
 dependencyMissing=0
 
 if command -v bash >/dev/null 2>&1; then
@@ -30,14 +33,13 @@ else
 fi
 
 if [ "$dependencyMissing" == 0 ]; then
-    echo "All dependencies found!"
+    echo "${BOLD}All dependencies found!${NORMAL}"
 else
     echo "$dependencyMissing dependencies were not found."
 fi
 echo
 
-mkdir -p ~/bin/
-cd ~/bin/
+cd /usr/local/bin/
 
 wget -O filmrisscopy https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/filmrisscopy.sh
 chmod +x filmrisscopy
@@ -51,7 +53,7 @@ echo >>"$configFile"
 echo "logfileBackupPath=\${HOME}/.config/filmrisscopy/logs" >>"$configFile"
 echo "presetPath=\${HOME}/.config/filmrisscopy/presets" >>"$configFile"
 
-echo "FilmrissCopy installed under ~/bin/filmrisscopy"
-echo "To run in from everywhere you might have to add ~/bin to your \$PATH Variable (you can do that inside your ~/.bashrc)"
+echo "${BOLD}FilmrissCopy installed under /usr/local/bin/filmrisscopy${NORMAL}"
+
 echo
-echo "Type \"filmrisscopy\" to run"
+echo "Type ${BOLD}filmrisscopy${NORMAL} to run"

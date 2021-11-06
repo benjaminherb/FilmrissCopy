@@ -804,10 +804,10 @@ function startupSetup() {
         setDestination
     elif [[ $usePreset == "2" ]]; then
 
-        presetLast="$scriptPath/filmrisscopy_preset_last.config"
+        presetLast="${presetPath}/filmrisscopy_preset_last.config"
 
         if [ -f "$presetLast" ]; then
-            source "$scriptPath/filmrisscopy_preset_last.config"
+            source "${presetPath}/filmrisscopy_preset_last.config"
         else
             echo "$($RED)ERROR: LAST PRESET NOT FOUND$($NC)"
             startupSetup
@@ -913,7 +913,7 @@ function endScreen() {
         read -er overWriteLastPreset
     done
     if [[ $overWriteLastPreset == "y" ]]; then
-        writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
+        writePreset >"${presetPath}/filmrisscopy_preset_last.config" # Write "last" Preset
         echo
         echo "Preset Updated"
     fi
