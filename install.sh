@@ -39,8 +39,8 @@ echo
 mkdir -p ~/bin/filmrisscopy
 cd ~/bin/filmrisscopy
 
-# wget -O filmrisscopy https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/filmrisscopy.sh
-# wget -O README.md https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/README.md
+wget -O filmrisscopy https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/filmrisscopy.sh
+wget -O README.md https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/README.md
 chmod +x filmrisscopy
 
 echo "FilmrissCopy installed under ~/bin/filmrisscopy/"
