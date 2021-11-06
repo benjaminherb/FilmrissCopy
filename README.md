@@ -9,22 +9,21 @@ You have the option to select multiple sources and destinations and the copied d
 
 ## Installation
 
-The script uses xxHash as default verification method and rsync for resuming a copy process so it is recommended to install both of them.
+The script uses xxHash as default verification method and rsync for resuming a copy process so it is recommended (but not necessary) to have both installed.
 
-# Arch Based Distro
+### Ubuntu
+```
+sudo apt install xxhash rsync
+```
+
+### Arch
 ```
 sudo pacman -S xxhash rsync
 ```
 
-Then Download the latest script from the release page and make it executable
-```
-chmod +x ./filmrisscopy.sh
-```
+To install you can just download the latest filmrisscopy script or use this command:
 
-Then just run it with
-```
-./filmrisscopy.sh
-```
+wget https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/install.sh -O - | bash 
 
 ## Logging
 Comprehensive logfiles for the completed process are stored in the destination folder as well as in a "filmrisscopy_logs" folder where the script is located. The log file can also be used to verify copys of the data later. A log files looks like this:
@@ -81,6 +80,7 @@ The Output will be stored in a filmrisscopy_verification_log.txt file.
 
 ## V0.2 Changelog
 Added Option to verify using FilmrissCopy Log Files<br/>
+Added Option for Batch Verify to check a complete Project<br/>
 Fixed RSYNC Behaviour & Speed Improvements<br/>
 Added Way to differentiate between Current Date/Time and Project Date<br/>
 Fixed Log File Formatting Issues<br/>

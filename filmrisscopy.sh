@@ -674,7 +674,7 @@ function log() {
     echo "PROJECT DATE: $projectDate" >>"$logfilePath"
     echo "SOURCE: $sourceFolder" >>"$logfilePath"
 
-    getSerial >/dev/null 2>&1
+    getSerial >/dev/null 2>&1 # Gets the serial number of the source drive if possible
 
     echo "DESTINATION: $destinationFolderFullPath" >>"$logfilePath"
     echo "JOB: $currentJobNumber / $jobNumber" >>"$logfilePath"
