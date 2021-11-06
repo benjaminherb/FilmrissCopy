@@ -41,8 +41,9 @@ echo
 
 cd /usr/local/bin/
 
-wget -O filmrisscopy https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/filmrisscopy.sh
-chmod +x filmrisscopy
+echo "Needing Root Privileges to install to /usr/local/bin"
+sudo wget -O filmrisscopy https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/filmrisscopy.sh
+sudo chmod +x filmrisscopy
 
 configDirectory="${HOME}/.config/filmrisscopy/"
 configFile="$configDirectory/filmrisscopy.config"
