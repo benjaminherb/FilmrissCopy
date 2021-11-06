@@ -364,31 +364,12 @@ function run() {
         echo
     fi
 
-    if [[ $runMode == "copyParallel" ]]; then
-        echo "${BOLD}RUNNING PARALLEL COPY...${NORMAL}"
-
-        tempDest=""
-        for dest in "${allDestinationFolders[@]}"; do #create String with all Destinations
-            tempDest="$tempDest ""$dest"
-        done
-
-        copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-
-        for src in "${allSourceFolders[@]}"; do
-            parallel -j0 -N1 cp --archive --recursive --verbose "$src" ::: "$tempDest" >>"$logfilePath" 2>&1
-        done
-
-        sleep 2
-        kill $! # Copy then wait for the Status to catch up
-        echo
-    fi
-
     if [[ $runMode == "rsync" ]]; then # Needs Root, checks based on checksum Calculations
         sudo echo "${BOLD}RUNNING RSYNC...${NORMAL}"
         echo >>"$logfilePath"
         echo "RSYNC PROCESS:" >>"$logfilePath"
         copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-        sudo rsync --archive --size-only --info=NAME "$sourceFolder" "${destinationFolderFullPath}/${sourceBaseName}" >>"$logfilePath"
+        sudo rsync --archive --size-only --info=NAME "$sourceFolder" "${destinationFolderFullPath}/${sourceBaseName}" >>"$logfilePath" 2>&1
         sleep 2
         kill $!
         echo
@@ -403,9 +384,11 @@ function run() {
         checksumUtility="shasum"
     fi
 
-    checksumFile="${tempFolder}/${checksumUtility}_${reelName}_${dateNow}${timeNow}" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
-
-    checksum
+    if [ $verificationMode == "size" ]; then
+        fileSizeComparison
+    else
+        checksum
+    fi
 
     currentTime=$(date +%s)
     elapsedTime=$(($currentTime - $copyStartTime))
@@ -416,6 +399,9 @@ function run() {
     if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]]; then
         echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
         sed -i "$(($headerLength + 3)) a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / $totalByteSpace )\n" "$logfilePath" >/dev/null 2>&1
+    elif [ $verificationMode == "size" ]; then
+        echo "${BOLD}JOB $currentJobNumber DONE: COPIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
+        sed -i "$(($headerLength + 3)) a COPIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / $totalByteSpace )\n" "$logfilePath" >/dev/null 2>&1
     else
         echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
         sed -i "$(($headerLength + 3)) a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / $totalByteSpace )\n" "$logfilePath" >/dev/null 2>&1
@@ -444,6 +430,24 @@ function copyStatus() {
 
         echo -ne "$copiedFileCount / $totalFileCount Files | Total Size: $totalFileSize | Elapsed Time: $elapsedTimeFormatted | Aprox. Time Left: $aproxTimeFormatted"\\r
     done
+}
+
+## Verify Copy by comparing Byte Size and file count
+function fileSizeComparison() {
+    local sourceSize=$(du --summarize "${sourceFolder}" | cut --field=1)
+    local copySize=$(du --summarize "${destinationFolderFullPath}/${sourceBaseName}" | cut --field=1)
+
+    local sourceFileCount=$(find "$sourceFolder" -type f | wc --lines)
+    local copyFileCount=$(find "${destinationFolderFullPath}/${sourceBaseName}" -type f | wc --lines)
+
+    if [ "$copySize" == "$sourceSize" ] && [ "$sourceFileCount" == "$copyFileCount" ]; then
+        echo "${BOLD}FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) MATCH! ${NORMAL}"
+        sed -i "$(($headerLength + 1)) a FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) MATCH!\n" "$logfilePath" >/dev/null 2>&1
+    else
+        echo $(du --summarize "${destinationFolderFullPath}/${sourceBaseName}" | cut --field=1)
+        echo "${BOLD}$($RED)ERROR: FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) DONT MATCH!${NORMAL}$($NC)"
+        sed -i "$(($headerLength + 1)) a ERROR: FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) DONT MATCH!\n" "$logfilePath" >/dev/null 2>&1
+    fi
 }
 
 ## Checksum
@@ -600,6 +604,8 @@ function log() {
         echo "VERIFICATION: xxHash" >>"$logfilePath"
     elif [ $verificationMode == "sha" ]; then
         echo "VERIFICATION: SHA-1" >>"$logfilePath"
+    elif [ $verificationMode == "size" ]; then
+        echo "VERIFICATION: Size Comparison" >>"$logfilePath"
     fi
 
     echo >>"$logfilePath"
@@ -662,7 +668,7 @@ function printStatus() {
         echo "${BOLD}VERIFICATION:${NORMAL}   SHA-1"
         ;;
     size)
-        echo "${BOLD}VERIFICATION:${NORMAL}   Size Comparison Only"
+        echo "${BOLD}VERIFICATION:${NORMAL}   Size Comparison"
         ;;
     esac
 
