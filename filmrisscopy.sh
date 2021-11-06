@@ -210,8 +210,53 @@ function loadPreset() {
     fi
 }
 
+## Find all logfiles in a given directory and verify the data
+function batchVerify() {
+    echo
+    echo "Choose root directory for the batch verify:"
+    read -er batchVerifyDirectory
+
+    while [ ! -d "$batchVerifyDirectory" ]; do
+        echo "$($RED)ERROR: $batchVerifyDirectory IS NOT A VALID DIRECTORY$($NC)"
+        echo
+        echo "Choose root directory for the batch verify:"
+        read -er batchVerifyDirectory
+    done
+
+    allLogFileDirectorysTemp=($(find "$batchVerifyDirectory" -type f -name "*filmrisscopy_log.txt" -exec dirname {} \;))
+
+    for lTemp in "${allLogFileDirectorysTemp[@]}"; do # Sorts out duplicate directorys
+        dup="false"
+        for l in "${allLogFileDirectorys[@]}"; do
+            if [ "${lTemp}" == "$l" ]; then
+                dup="true"
+                break
+            fi
+        done
+        if [ $dup == "false" ]; then allLogFileDirectorys+=("$lTemp"); fi
+    done
+
+    for copyDirectoryVerification in "${allLogFileDirectorys[@]}"; do
+        echo
+        echo "FOUND DIRECTORY: $copyDirectoryVerification"
+
+        local logFiles=($(find "$copyDirectoryVerification"/*filmrisscopy_log.txt))
+
+        for logFileVerification in "${logFiles[@]}"; do
+            if grep -q "COMPARING CHECKSUM TO COPY" "$logFileVerification"; then
+                echo "USING $logFileVerification"
+                verify # verifys with the current logFileVerification
+            fi
+            break
+        done
+
+    done
+
+    endScreen
+}
+
 ## Verifys Copy using the checksums from a filmrisscopy_log file
-function verify() {
+function singleVerify() {
 
     echo
     echo "Choose a Filmrisscopy Log File"
@@ -241,7 +286,16 @@ function verify() {
         echo "$copyDirectoryVerification"
     fi
 
-    logfilePath="${copyDirectoryVerification}/${dateNow}_${timeNow}_filmrisscopy_verification_log.txt"
+    verify
+    endScreen
+
+}
+
+function verify() {
+
+    projectName=$(grep "PROJECT NAME" "$logFileVerification" | cut --delimiter=' ' --field=3)
+
+    logfilePath="${copyDirectoryVerification}/${dateNow}_${timeNow}_${projectName}_filmrisscopy_verification_log.txt"
     echo "FILMRISSCOPY VERSION $version" >>"$logfilePath"
     echo "LOGFILE: $logFileVerification" >>"$logfilePath"
     echo "COPY DIRECTORY: $copyDirectoryVerification" >>"$logfilePath"
@@ -256,13 +310,12 @@ function verify() {
         checksumUtility="md5sum"
     else
         echo "$($RED)ERROR: LOG FILE [$logfilePath] CONTAINS NO CHECKSUMS$($NC)"
-        baseLoop
+        return
     fi
 
     echo "VERIFICATION: $verificationModeName" >>"$logfilePath"
     echo >>"$logfilePath"
     echo "CHECKSUM CALCULATIONS ON SOURCE:" >>"$logfilePath"
-    checksumFile="${tempFolder}/${checksumUtility}_${dateNow}${timeNow}"
 
     getChecksums "$logFileVerification" >>"$logfilePath" # Returns $checksums Variable
 
@@ -277,8 +330,31 @@ function verify() {
     totalFileSize=$(du --block-size=1M --summarize --human-readable "$copyDirectoryVerification" | cut --field=1)
 
     checksumComparison
-    endScreen
 
+    backupLogFile
+
+}
+
+## Copies current LogFile to the filmrisscopy_logs dir
+function backupLogFile() {
+    if [ -f "$logfilePath" ]; then
+        logfileBackupPath="$scriptPath/filmrisscopy_logs"
+
+        mkdir -p "$logfileBackupPath"
+        logfileName=$(basename "$logfilePath" | sed "s/_filmrisscopy/_1_filmrisscopy/g")
+
+        i=2
+
+        while [[ -f "$logfileBackupPath/$logfileName" ]]; do
+            logfileName=$(echo "$logfileName" | sed "s/_[0-9]*_filmrisscopy/_${i}_filmrisscopy/g")
+            ((i++))
+            echo $logfileName
+        done
+
+        echo "$logfileBackupPath/$logfileName"
+
+        cp -i "$logfilePath" "$logfileBackupPath/$logfileName" # Backup logs to a folder in the scriptpath
+    fi
 }
 
 ## Run the main Copy Process
@@ -408,6 +484,8 @@ function run() {
     fi
 
     sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/I,+1d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
+
+    backupLogFile
 
 }
 
@@ -568,11 +646,11 @@ function runStatus() {
 ## Get Checksums from Filmrisscopy Log and prints them
 function getChecksums() {
     # Get start and end of the checksums from the given logfile
-    local logFile="$1"
-    local startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logFile" | cut --delimiter=: --field=1) + 1))
-    local endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logFile" | cut --delimiter=: --field=1) - 2))
+    local logfile="$1"
+    local startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logfile" | cut --delimiter=: --field=1) + 1))
+    local endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logfile" | cut --delimiter=: --field=1) - 2))
 
-    sed -n $startLineChecksum','$endLineChecksum'p' "$logFile"
+    sed -n $startLineChecksum','$endLineChecksum'p' "$logfile"
 }
 
 ## Log
@@ -830,11 +908,6 @@ function endScreen() {
     fi
     echo
 
-    if [ -f "$logfilePath" ]; then
-        mkdir -p "$scriptPath/filmrisscopy_logs/"
-        cp "$logfilePath" "$scriptPath/filmrisscopy_logs/" # Backup logs to a folder in the scriptpath
-    fi
-
     exit
 
 }
@@ -846,7 +919,7 @@ function baseLoop() {
         printStatus
 
         echo
-        echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP  (4) VERIFY"
+        echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP  (4) VERIFY  (5) BATCH VERIFY"
         read -er command
 
         if [ "$command" == "1" ]; then
@@ -864,7 +937,11 @@ function baseLoop() {
         fi
 
         if [ "$command" == "4" ]; then
-            verify
+            singleVerify
+        fi
+
+        if [ "$command" == "5" ]; then
+            batchVerify
         fi
 
         if [ "$command" == "0" ]; then
