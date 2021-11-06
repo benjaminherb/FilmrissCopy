@@ -22,11 +22,12 @@ sudo pacman -S xxhash rsync
 ```
 
 To install you can just download the latest filmrisscopy script or use this command:
-
-wget https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/install.sh -O - | bash 
+```
+wget https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/install.sh -O - | bash
+```
 
 ## Logging
-Comprehensive logfiles for the completed process are stored in the destination folder as well as in a "filmrisscopy_logs" folder where the script is located. The log file can also be used to verify copys of the data later. A log files looks like this:
+Comprehensive logfiles for the completed process are stored in the destination folder as well as in a filmrisscopy_logs folder where the script is located (default is ~/bin/filmrisscopy). The log file can also be used to verify copys of the data later. A log files looks like this:
 
 ```
 FILMRISSCOPY VERSION 0.2
@@ -75,17 +76,17 @@ COMPARING CHECKSUM TO COPY:
 ## Verify
 There are two ways to verify using a filmrisscopy log file.
 The first option is to choose a logfile and the corresponding directory to verify.
-The second option is "Batch Verify". Here you choose a top level directory and filmrisscopy will recursivly search for all log files and verify based on the oldest log file (granted it has completed checksums).
+The second option is "Batch Verify". Here you choose a top level directory and filmrisscopy will recursivly search for all log files and verify based on the oldest log file (granted it has completed checksums).<br/>
 The Output will be stored in a filmrisscopy_verification_log.txt file.
 
 ## V0.2 Changelog
-Added Option to verify using FilmrissCopy Log Files<br/>
-Added Option for Batch Verify to check a complete Project<br/>
-Fixed RSYNC Behaviour & Speed Improvements<br/>
-Added Way to differentiate between Current Date/Time and Project Date<br/>
-Fixed Log File Formatting Issues<br/>
-Updated Folder / Log File Naming Scheme<br/>
-Added Option to save preset when something is interrupted<br/>
-Fixed Checksum Progress Bar<br/>
-Added Source Serial Number to the log file<br/>
-Stability Improvements<br/>
+- Added Option to verify using FilmrissCopy Log Files<br/>
+- Added Option for Batch Verify to check a complete Project<br/>
+- Fixed RSYNC Behaviour & Speed Improvements<br/>
+- Added Way to differentiate between Current Date/Time and Project Date<br/>
+- Fixed Log File Formatting Issues<br/>
+- Updated Folder / Log File Naming Scheme<br/>
+- Added Option to save preset when something is interrupted<br/>
+- Fixed Checksum Progress Bar<br/>
+- Added Source Serial Number to the log file<br/>
+- Stability Improvements<br/>
