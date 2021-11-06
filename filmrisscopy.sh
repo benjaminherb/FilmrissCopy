@@ -24,21 +24,28 @@ NORMAL=$(tput sgr0)
 echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
 =======
 version="0.2"
+scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
+configFile="${HOME}/.config/filmrisscopy/filmrisscopy.config"
+logfileBackupPath="${HOME}/.config/filmrisscopy/logs"
+presetPath="${HOME}/.config/filmrisscopy/presets"
 
 echo "${BOLD}FILMRISSCOPY VERSION $version${NORMAL}"
 >>>>>>> testing
 echo
-scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
-echo "LAST UPDATED:	$(date -r "$scriptPath")"
 
 cd "$(dirname "$scriptPath")"
 scriptPath=$(pwd)
-echo "LOCATION:	$scriptPath/"
-echo "LOGFILES:	$scriptPath/filmrisscopy_logs/"
-echo "PRESETS: 	$scriptPath/filmrisscopy_presets/"
+echo "LOCATION:     $scriptPath/"
 
-tempFolder="$scriptPath/filmrisscopy_temp"
-mkdir -p "$tempFolder" #Temp folder for storing Hashfiles during a process (to be used again)
+if [ -f "$configFile" ]; then
+    source "$configFile"
+    echo "CONFIG:       $configFile"
+fi
+echo "PRESETS:      $presetPath"
+echo "LOG FILES:    $logfileBackupPath"
+
+mkdir -p "$logfileBackupPath"
+mkdir -p "$presetPath"
 
 dateNow=$(date +"%Y%m%d")
 timeNow=$(date +"%H%M")
@@ -204,20 +211,20 @@ function loadPreset() {
     if [ ! "$presetCommand" == "0" ] && [ ! "$presetCommand" == "1" ] && [ ! "$presetCommand" == "2" ]; then loadPreset; fi
 
     if [ "$presetCommand" == "1" ]; then
-        source "${scriptPath}/filmrisscopy_preset_last.config"
+        source "${presetPath}/filmrisscopy_preset_last.config"
     elif [ "$presetCommand" == "2" ]; then
         echo
         echo "Choose Preset Path"
         read -er presetPath
 
-        while [[ ! -f "$presetPath" ]] || [[ ! "$presetPath" == *".config" ]]; do
-            echo "$($RED)ERROR: \"$presetPath\" IS NOT A VALID PRESET FILE $($NC)"
+        while [[ ! -f "$presetFile" ]] || [[ ! "$presetFile" == *".config" ]]; do
+            echo "$($RED)ERROR: \"$presetFile\" IS NOT A VALID PRESET FILE $($NC)"
             echo
             echo "Choose Preset Path"
             read -er presetPath
         done
 
-        source "$presetPath"
+        source "$presetFile"
     fi
 }
 
@@ -464,7 +471,6 @@ function verify() {
 ## Copies current LogFile to the filmrisscopy_logs dir
 function backupLogFile() {
     if [ -f "$logfilePath" ]; then
-        logfileBackupPath="$scriptPath/filmrisscopy_logs"
 
         mkdir -p "$logfileBackupPath"
         logfileName=$(basename "$logfilePath" | sed "s/_filmrisscopy/_1_filmrisscopy/g")
