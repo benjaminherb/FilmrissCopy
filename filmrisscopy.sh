@@ -625,24 +625,6 @@ function checksumComparisonStatus() {
     done
 }
 
-## Run Status
-function runStatus() {
-    header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
-    table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
-
-    printf "$header" \
-        "" "COPY" "CSUM" "VALD" "SIZE" "FILES" "SOURCE" "DESTINATION"
-
-    printf "$table" \
-        "JOB 1" "DONE" "DONE" "85%" "15G" "1304" "/home/benny/Video/TEST" "/mnt/Projekt/SSD/" \
-        "JOB 2" "DONE" "DONE" "DONE" "15G" "1304" "/home/benny/Video" "/mnt/Projekt/HDD/" \
-        "JOB 3" "15%" "" "" "15G" "1304" "/mnt/Projekt/TEST2" "/mnt/Projekt/SSD/" \
-        "JOB 4" "DONE" "06%" "" "15G" "1304" "/mnt/Projekt/TEST2" "/mnt/Projekt/HDD/"
-
-    echo
-    echo
-}
-
 ## Get Checksums from Filmrisscopy Log and prints them
 function getChecksums() {
     # Get start and end of the checksums from the given logfile
@@ -650,8 +632,6 @@ function getChecksums() {
     local startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logfile" | cut --delimiter=: --field=1) + 1))
     local endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logfile" | cut --delimiter=: --field=1) - 2))
 
-echo "$startLineChecksum Sta"
-echo "$endLineChecksum En"
     sed -n $startLineChecksum','$endLineChecksum'p' "$logfile"
 }
 
