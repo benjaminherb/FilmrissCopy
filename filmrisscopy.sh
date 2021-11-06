@@ -6,7 +6,7 @@
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# any later version.
 
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -294,7 +294,7 @@ function run() {
         return
     fi
 
-    destinationFolderFullPath="${destinationFolder}${projectName}/${projectDate}_${projectName}_${reelName}" # Generate Full Path
+    destinationFolderFullPath="${destinationFolder}${projectName}/${projectShootDay}_${projectDate}/${projectShootDay}_${projectDate}_${projectName}_${reelName}" # Generate Full Path
     sourceBaseName=$(basename "$sourceFolder")
 
     if [[ ! -d "$destinationFolderFullPath" ]]; then # Check if the folder already exists, and creates the structure if needed
@@ -576,8 +576,13 @@ function log() {
     #sourceDevice=$(df "$sourceFolder" | tail -1 | cut --delimiter=' ' --field=1 | sed 's/[0-9]//g') # Get Device
     #echo $sourceDevice
     #sourceSerial=$(lsblk -n -o SERIAL "$sourceDevice" | head -1)
+    if [ "${#allDestinationFolders[@]}" -gt 1 ]; then # if there are more than one copys made, adds an identifier
+        local current_copy_num=$((($currentJobNumber - 1) % "${#allDestinationFolders[@]}" + 1))
+        logfile="${dateNow}_${timeNow}_${projectName}_${reelName}_${current_copy_num}_filmrisscopy_log.txt"
+    else
+        logfile="${dateNow}_${timeNow}_${projectName}_${reelName}_filmrisscopy_log.txt"
+    fi
 
-    logfile="${projectDate}_${timeNow}_${currentJobNumber}_${jobNumber}_${projectName}_filmrisscopy_log.txt"
     logfilePath="$destinationFolderFullPath/$logfile"
     echo "FILMRISSCOPY VERSION $version" >>"$logfilePath"
     echo "PROJECT NAME: $projectName" >>"$logfilePath"
