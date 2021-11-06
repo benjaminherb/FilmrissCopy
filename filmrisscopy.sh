@@ -67,6 +67,7 @@ function setSource() {
     echo
     echo Choose Source Folder:
     read -er sourceFolderTemp
+    [[ "${sourceFolderTemp}" == */ ]] && sourceFolderTemp="${sourceFolderTemp::-1}" # Remove trailing /
 
     if [[ ! -d "$sourceFolderTemp" ]]; then
         echo "$($RED)ERROR: $sourceFolderTemp IS NOT A VALID SOURCE$($NC)"
@@ -83,6 +84,7 @@ function setSource() {
         echo
         echo "Choose Additional Source Folder (Enter to Skip)"
         read -er sourceFolderTemp
+        [[ "${sourceFolderTemp}" == */ ]] && sourceFolderTemp="${sourceFolderTemp::-1}" # Remove trailing /
 
         duplicateSource="false"
         for src in "${allSourceFolders[@]}"; do # Loops over source array to check if the new source is a douplicate
@@ -125,6 +127,7 @@ function setDestination() {
     echo
     echo Choose Destination Folder:
     read -er destinationFolderTemp
+    [[ "${destinationFolderTemp}" == */ ]] && destinationFolderTemp="${destinationFolderTemp::-1}" # Remove trailing /
 
     if [[ ! -d "$destinationFolderTemp" ]]; then
         echo "$($RED)ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION $($NC)"
@@ -138,6 +141,7 @@ function setDestination() {
         echo
         echo "Choose Additional Destination Folder (Enter to Skip)"
         read -er destinationFolderTemp
+        [[ "${destinationFolderTemp}" == */ ]] && destinationFolderTemp="${destinationFolderTemp::-1}" # Remove trailing /
 
         duplicateDestination="false"
         for dst in "${allDestinationFolders[@]}"; do # Loops over dst array to check if the new source is a duplicate
@@ -351,8 +355,6 @@ function backupLogFile() {
             echo $logfileName
         done
 
-        echo "$logfileBackupPath/$logfileName"
-
         cp -i "$logfilePath" "$logfileBackupPath/$logfileName" # Backup logs to a folder in the scriptpath
     fi
 }
@@ -370,7 +372,7 @@ function run() {
         return
     fi
 
-    destinationFolderFullPath="${destinationFolder}${projectName}/${projectShootDay}_${projectDate}/${projectShootDay}_${projectDate}_${projectName}_${reelName}" # Generate Full Path
+    destinationFolderFullPath="${destinationFolder}/${projectName}/${projectShootDay}_${projectDate}/${projectShootDay}_${projectDate}_${projectName}_${reelName}" # Generate Full Path
     sourceBaseName=$(basename "$sourceFolder")
 
     if [[ ! -d "$destinationFolderFullPath" ]]; then # Check if the folder already exists, and creates the structure if needed
