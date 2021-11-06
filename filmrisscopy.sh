@@ -1,10 +1,12 @@
+#!/bin/bash
+
 # FilmrissCopy is a program for copying and verifying video / audio files for onset backups.
 # Copyright (C) <2021>  <Benjamin Herb>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# any later version.
 
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,9 +22,6 @@ NC='tput sgr0' # no color
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
-<<<<<<< HEAD
-echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
-=======
 version="0.2"
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
 configFile="${HOME}/.config/filmrisscopy/filmrisscopy.config"
@@ -30,7 +29,6 @@ logfileBackupPath="${HOME}/.config/filmrisscopy/logs"
 presetPath="${HOME}/.config/filmrisscopy/presets"
 
 echo "${BOLD}FILMRISSCOPY VERSION $version${NORMAL}"
->>>>>>> testing
 echo
 
 cd "$(dirname "$scriptPath")"
@@ -71,13 +69,8 @@ function setProjectInfo() {
     read -er projectShootDay
 }
 
-<<<<<<< HEAD
-## Choose Ssource Directoryot -name
-setSource() {
-=======
 ## Choose Source Directory
 function setSource() {
->>>>>>> testing
     echo
     echo Choose Source Folder:
     read -er sourceFolderTemp
@@ -228,77 +221,12 @@ function loadPreset() {
     fi
 }
 
-<<<<<<< HEAD
-## Run the main Copy Process
-run() {
-    runMode=copy # Can be Copy, Checksum or RSync
-=======
 ## Find all logfiles in a given directory and verify the data
 function batchVerify() {
->>>>>>> testing
     echo
     echo "Choose root directory for the batch verify:"
     read -er batchVerifyDirectory
 
-<<<<<<< HEAD
-    totalByteSpace=$(du -s "$sourceFolder" | cut -f1) # Check if there is enough Space left
-    destinationFreeSpace=$(df --block-size=1 --output=avail "$destinationFolder" | cut -d$'\n' -f2)
-
-    if [[ $(($destinationFreeSpace - $totalByteSpace)) -lt 20 ]]; then
-        echo "$($RED)ERROR: NOT ENOUGH DISK SPACE LEFT IN $destinationFolder$($NC)"
-        return
-    fi
-
-    destinationFolderFullPath="$destinationFolder""$projectName""/"$projectDate"_""$projectName""_"$reelName # Generate Full Path
-
-    if [[ ! -d "$destinationFolderFullPath" ]]; then # Check if the folder already exists, and creates the structure if needed
-        mkdir -p "$destinationFolderFullPath"
-    else
-        echo "$($RED)ERROR: DIRECTORY ALREAD EXISTS IN THE DESTINATION FOLDER$($NC)"
-        echo
-        fileDifference=$(($(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l) - $(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc -l)))
-
-        if [[ $fileDifference == 0 ]]; then
-            echo Source and Destination have the same Size
-
-            echo "Run Checksum Calculations? (y/n)"
-            read -e rerunChecksum
-
-            while [ ! "$rerunChecksum" == "y" ] && [ ! "$rerunChecksum" == "n" ] && [ -z "$rerunChecksum" ]; do
-                echo "Run Checksum Calculations? (y/n)"
-                read -e rerunChecksum
-            done
-
-            if [[ $rerunChecksum == "y" ]]; then
-                runMode=checksum
-                echo
-            fi
-            if [[ $rerunChecksum == "n" ]]; then return; fi
-
-        else
-
-            if [ $fileDifference -gt 0 ]; then
-                echo "There are $fileDifference Files missing compared to the Source Directory"
-            else
-                fileDifference=$(($fileDifference * -1))
-                echo "There are $fileDifference Files more in the Destination than in the Source Directory. The Folder is probably already in use for something different!"
-            fi
-            echo "Run RSYNC to copy the missing Files? (Needs Sudo Privileges) (y/n)"
-            read -e runRsync
-
-            while [ ! $runRsync == "y" ] && [ ! $runRsync == "n" ]; do
-                echo "Run RSYNC to copy the missing Files? (y/n)"
-                read -e runRsync
-            done
-            echo
-
-            if [[ $runRsync == "y" ]]; then runMode=rsync; fi
-            if [[ $runRsync == "n" ]]; then return; fi
-        fi
-    fi
-
-    log # Create Log File and Write Header
-=======
     while [ ! -d "$batchVerifyDirectory" ]; do
         echo "$($RED)ERROR: $batchVerifyDirectory IS NOT A VALID DIRECTORY$($NC)"
         echo
@@ -307,7 +235,6 @@ function batchVerify() {
     done
 
     allLogFileDirectorysTemp=($(find "$batchVerifyDirectory" -type f -name "*filmrisscopy_log.txt" -exec dirname {} \;))
->>>>>>> testing
 
     for lTemp in "${allLogFileDirectorysTemp[@]}"; do # Sorts out duplicate directorys
         dup="false"
@@ -320,57 +247,6 @@ function batchVerify() {
         if [ $dup == "false" ]; then allLogFileDirectorys+=("$lTemp"); fi
     done
 
-<<<<<<< HEAD
-    if [[ $runMode == "copy" ]]; then
-        echo "${BOLD}RUNNING COPY...${NORMAL}"
-        copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-        cp --archive --recursive --verbose "$sourceFolder" "$destinationFolderFullPath" >>"$logfilePath" 2>&1
-
-        sleep 2
-        kill $! # Copy then wait for the Status to catch up
-        echo
-    fi
-
-    if [[ $runMode == "copyParallel" ]]; then
-        echo "${BOLD}RUNNING PARALLEL COPY...${NORMAL}"
-
-        tempDest=""
-        for dest in "${allDestinationFolders[@]}"; do #create String with all Destinations
-            tempDest="$tempDest ""$dest"
-        done
-
-        copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-
-        for src in "${allSourceFolders[@]}"; do
-            parallel -j0 -N1 cp --archive --recursive --verbose "$src" ::: "$tempDest" >>"$logfilePath" 2>&1
-        done
-
-        sleep 2
-        kill $! # Copy then wait for the Status to catch up
-        echo
-    fi
-
-    if [[ $runMode == "rsync" ]]; then # Needs Root, checks based on checksum Calculations
-        sudo echo "${BOLD}RUNNING RSYNC...${NORMAL}"
-        copyStatus & # copyStatus runs in a loop in the background - when copy is finished the process is killed
-        sudo rsync --verbose --checksum --archive "$sourceFolder" "$destinationFolderFullPath" >>"$logfilePath" 2>&1
-        sleep 2
-        kill $!
-        echo
-    fi
-
-    if [ $verificationMode == "md5" ]; then # Used in commands later (eg. to refer to the correct **sum.txt )
-        checksumUtility="md5sum"
-    elif [ $verificationMode == "xxhash" ]; then
-        checksumUtility="xxhsum"
-    elif [ $verificationMode == "sha" ]; then
-        checksumUtility="shasum"
-    fi
-
-    checksumFile=""$tempFolder"/"$checksumUtility"_"$reelName"" # Store the checksum file in a temp folder (verifyable with the job number) so it can be refered to when having multiple Destinations
-
-    checksum
-=======
     for copyDirectoryVerification in "${allLogFileDirectorys[@]}"; do
         echo
         echo "FOUND DIRECTORY: $copyDirectoryVerification"
@@ -595,7 +471,6 @@ function run() {
     else
         checksum
     fi
->>>>>>> testing
 
     currentTime=$(date +%s)
     elapsedTime=$(($currentTime - $copyStartTime))
@@ -618,19 +493,6 @@ function run() {
 
     backupLogFile
 
-    echo # End of the Job
-    if [[ ! $runMode == "copy" ]] && [[ ! $runMode == "rsync" ]]; then
-        echo "${BOLD}JOB $currentJobNumber DONE: VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
-        sed -i "11 a VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
-    else
-        echo "${BOLD}JOB $currentJobNumber DONE: COPIED AND VERIFIED $totalFileCount Files	(Total Time: $elapsedTimeFormatted)${NORMAL}"
-        sed -i "11 a COPIED AND VERIFIED $totalFileCount FILES IN $elapsedTimeFormatted ( TOTAL SIZE: $totalFileSize / "$totalByteSpace" )\n" "$logfilePath" >/dev/null 2>&1
-    fi
-
-    sed -i '/THE COPY PROCESS WAS NOT COMPLETED CORRECTLY/d' "$logfilePath" >/dev/null 2>&1 # Delete the Notice as the run was completed
-
-    mkdir -p "$scriptPath"/filmrisscopy_logs/
-    cp "$logfilePath" "$scriptPath"/filmrisscopy_logs/ # Backup logs to a folder in the scriptpath
 }
 
 ## Copy progress
@@ -673,11 +535,7 @@ function fileSizeComparison() {
 }
 
 ## Checksum
-<<<<<<< HEAD
-checksum() {
-=======
 function checksum() {
->>>>>>> testing
     checksumStartTime=$(date +%s)
     echo "${BOLD}RUNNING CHECKSUM CALCULATIONS ON SOURCE...${NORMAL}"
     echo >>"$logfilePath"
@@ -691,10 +549,6 @@ function checksum() {
 
     sleep 2
     kill $!
-<<<<<<< HEAD
-    echo
-
-=======
 
     checksumComparison
 
@@ -705,25 +559,10 @@ function checksumComparison() {
 
     echo
 
->>>>>>> testing
     checksumStartTime=$(date +%s)
     echo "${BOLD}COMPARING CHECKSUM TO COPY...${NORMAL}"
     echo >>"$logfilePath"
     echo "COMPARING CHECKSUM TO COPY:" >>"$logfilePath"
-<<<<<<< HEAD
-
-    logFileLineCount=$(wc -l "$logfilePath" | cut --delimiter=" " -f1) # Updated for the new Progress
-    cd "$destinationFolderFullPath"
-    cd "$(basename "$sourceFolder")" # Go into the copied source folder to get the same relative path for the checksum verification
-
-    checksumComparisonStatus &
-
-    "$checksumUtility" -c "$checksumFile" >>"$logfilePath" 2>&1 # Command to verify using the checksumFile
-
-    sleep 2
-    kill $!
-    echo
-=======
     checksums=$(getChecksums "$logfilePath")
 
     logFileLineCount=$(wc --lines "$logfilePath" | cut --delimiter=" " --field=1) # Updated for the new Progress
@@ -748,16 +587,7 @@ function checksumComparison() {
         echo "${BOLD}$($RED)ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
         sed -i "$(($headerLength + 1)) a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" >/dev/null 2>&1
     fi
->>>>>>> testing
 
-    checksumPassedFiles=$(grep -c ": OK" "$logfilePath") # Checks wether the output to the logfile were all "OK" or not
-    if [[ $checksumPassedFiles == $totalFileCount ]]; then
-        echo "${BOLD}NO CHECKSUM ERRORS!${NORMAL}"
-        sed -i "9 a NO CHECKSUM ERRORS!\n" "$logfilePath" >/dev/null 2>&1
-    else
-        echo "${BOLD}$($RED)ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
-        sed -i "9 a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" >/dev/null 2>&1
-    fi
 }
 
 ## Checksum Progress
@@ -801,38 +631,6 @@ function checksumComparisonStatus() {
     done
 }
 
-<<<<<<< HEAD
-## Run Status
-
-runStatus() {
-    header="\n${BOLD}%-5s %6s %6s %6s %7s %8s    %-35s %-35s ${NORMAL}"
-    table="\n${BOLD}%-5s${NORMAL} %6s %6s %6s %7s %8s    %-35s %-5s"
-
-    printf "$header" \
-        "" "COPY" "CSUM" "VALD" "SIZE" "FILES" "SOURCE" "DESTINATION"
-
-    printf "$table" \
-        "JOB 1" "DONE" "DONE" "85%" "15G" "1304" "/home/benny/Video/TEST" "/mnt/Projekt/SSD/" \
-        "JOB 2" "DONE" "DONE" "DONE" "15G" "1304" "/home/benny/Video" "/mnt/Projekt/HDD/" \
-        "JOB 3" "15%" "" "" "15G" "1304" "/mnt/Projekt/TEST2" "/mnt/Projekt/SSD/" \
-        "JOB 4" "DONE" "06%" "" "15G" "1304" "/mnt/Projekt/TEST2" "/mnt/Projekt/HDD/"
-
-    echo
-    echo
-}
-
-## Log
-log() {
-    logfile=$projectDate"_"$projectTime"_"$currentJobNumber"_"$jobNumber"_""$projectName""_filmrisscopy_log.txt"
-    logfilePath="$destinationFolderFullPath"/$logfile
-    echo FILMRISSCOPY VERSION 0.1 >>"$logfilePath"
-    echo PROJECT NAME: $projectName >>"$logfilePath"
-    echo DATE/TIME: $projectDate"_"$projectTime >>"$logfilePath"
-    echo SOURCE: $sourceFolder >>"$logfilePath"
-    echo DESTINATION: $destinationFolderFullPath >>"$logfilePath"
-    echo JOB: $currentJobNumber / $jobNumber >>"$logfilePath"
-    echo RUNMODE: $runMode >>"$logfilePath"
-=======
 ## Get Checksums from Filmrisscopy Log and prints them
 function getChecksums() {
     # Get start and end of the checksums from the given logfile
@@ -888,7 +686,6 @@ function log() {
     echo "JOB: $currentJobNumber / $jobNumber" >>"$logfilePath"
     echo "RUNMODE: $runMode" >>"$logfilePath"
     echo "DATE/TIME: ${dateNow}_${timeNow}" >>"$logfilePath"
->>>>>>> testing
 
     if [ $verificationMode == "md5" ]; then
         echo "VERIFICATION: MD5" >>"$logfilePath"
@@ -904,14 +701,9 @@ function log() {
     echo "THE COPY PROCESS WAS NOT COMPLETED CORRECTLY" >>"$logfilePath" # Will be Deleted after the Job is finished
     echo >>"$logfilePath"
     cd "$sourceFolder"
-<<<<<<< HEAD
-    echo FOLDER STRUCTURE: >>"$logfilePath"
-    find . ! -path . -type d >>"$logfilePath" # Print Folder Structure
-=======
     cd ..
     echo "FOLDER STRUCTURE:" >>"$logfilePath"
     find "./${sourceBaseName}/" ! -path . -type d >>"$logfilePath" # Print Folder Structure
->>>>>>> testing
 }
 
 ## Changes seconds to h:m:s, change $temp to use, and save the output in a variable
@@ -931,11 +723,7 @@ function formatTime() {
 function printStatus() {
     echo
     if [[ $statusMode == "normal" ]]; then
-<<<<<<< HEAD
-        echo "${BOLD}FILMRISSCOPY VERSION 0.1${NORMAL}"
-=======
         echo "${BOLD}FILMRISSCOPY VERSION $version${NORMAL}"
->>>>>>> testing
     fi
 
     if [[ $statusMode == "edit" ]]; then
@@ -1058,121 +846,6 @@ function editProject() {
     done
 }
 
-<<<<<<< HEAD
-## Base Loop
-startupSetup
-
-while [ true ]; do
-
-    statusMode="normal" # choose how the Status will be shown (normal or edit)
-    printStatus
-
-    echo
-    echo "(0) EXIT  (1) RUN  (2) EDIT PROJECT  (3) RUN SETUP"
-    read -e command
-
-    if [ $command == "1" ]; then
-        if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
-
-            jobNumber=$((${#allSourceFolders[@]} * ${#allDestinationFolders[@]}))
-
-            echo
-            echo
-
-            if [ $jobNumber -eq 1 ]; then
-                echo "${BOLD}THERE IS $jobNumber COPY JOB IN QUEUE${NORMAL}"
-            else
-                echo "${BOLD}THERE ARE $jobNumber COPY JOBS IN QUEUE${NORMAL}"
-            fi
-
-            startTimeAllJobs=$(date +%s)
-
-            currentJobNumber=0
-            reelNumber=0
-            for sourceFolder in "${allSourceFolders[@]}"; do # Loops over Source array for the Job Queue
-
-                reelName=${allReelNames[$reelNumber]}
-                ((reelNumber++))
-
-                for destinationFolder in "${allDestinationFolders[@]}"; do # Loops over Destination array for the Job Que
-                    ((currentJobNumber++))
-                    echo
-                    echo
-                    echo "${BOLD}JOB $currentJobNumber / $jobNumber   $sourceFolder -> $destinationFolder${NORMAL}"
-                    run
-                done
-            done
-
-            endTimeAllJobs=$(date +%s)
-
-            elapsedTime=$(($endTimeAllJobs - $startTimeAllJobs))
-
-            timeTemp=$elapsedTime
-            elapsedTimeFormatted=$(formatTime)
-
-            echo
-            if [ $jobNumber -eq 1 ]; then
-                echo -e "${BOLD}$jobNumber JOB FINISHED IN $elapsedTimeFormatted${NORMAL}"
-            else
-                echo -e "${BOLD}$jobNumber JOBS FINISHED IN $elapsedTimeFormatted${NORMAL}"
-            fi
-            echo
-
-            echo "Do you want to quit the Program? (y/n)" # Quit Program after Finished Jobs or return to the Main Loop
-            read -e quitFRC
-            while [ ! $quitFRC == "y" ] && [ ! $quitFRC == "n" ]; do
-                echo "Do you want to quit the Program? (y/n)"
-                read -e quitFRC
-            done
-            if [[ $quitFRC == "y" ]]; then command=0; fi
-
-        else
-
-            echo
-            echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
-        fi
-
-    fi
-
-    if [ $command == "2" ]; then
-        editProject
-    fi
-
-    if [ $command == "3" ]; then
-        setProjectName
-        setSource
-        setDestination
-    fi
-
-    if [ $command == "0" ]; then
-        echo
-        echo "Overwrite last preset with the current Setup? (y/n)" # filmrisscopy_preset_last.config will be overwritten with the current parameters
-        read -e overWriteLastPreset
-        while [ ! $overWriteLastPreset == "y" ] && [ ! $overWriteLastPreset == "n" ]; do
-            echo "Update last preset with the current Setup? (y/n)"
-            read -e overWriteLastPreset
-        done
-        if [[ $overWriteLastPreset == "y" ]]; then
-            writePreset >"$scriptPath/filmrisscopy_preset_last.config" # Write "last" Preset
-            echo
-            echo "Preset Updated"
-        fi
-        echo
-        exit
-    fi
-done
-
-## Add Copied Status
-## Make Checksum Calculations in the Source folder first
-## Option for different Algorithms (XXHASH, SHA-1) + Option for no verification
-## MHL Implementation
-## Implement Telegram Bot
-## Add Option for verifying Checksum using a FilmrissCopyLogFileTM
-## Default Preset
-## Log Times of individual Tasks
-## Change Loop Input Method
-## Calculate Source Checksum Once for all Destinations
-=======
 function runJobs() {
 
     if [ ! ${#allSourceFolders[@]} -eq 0 ] && [ ! ${#allDestinationFolders[@]} -eq 0 ] && [ ! "$projectName" == "" ]; then # Check if atleast one Destination, one Source and a Project Name are set
@@ -1306,4 +979,3 @@ baseLoop
 ## @TODO Default Preset
 ## @TODO Log Times of individual Tasks
 ## @TODO Calculate Source Checksum Once for all Destinations
->>>>>>> testing
