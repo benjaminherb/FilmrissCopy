@@ -36,14 +36,22 @@ else
 fi
 echo
 
-mkdir -p ~/bin/filmrisscopy
-cd ~/bin/filmrisscopy
+mkdir -p ~/bin/
+cd ~/bin/
 
 wget -O filmrisscopy https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/filmrisscopy.sh
-wget -O README.md https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/README.md
 chmod +x filmrisscopy
 
-echo "FilmrissCopy installed under ~/bin/filmrisscopy/"
+configDirectory="${HOME}/.config/filmrisscopy/"
+configFile="$configDirectory/filmrisscopy.config"
+
+mkdir -p "$configDirectory"
+echo "#!/bin/bash" >>"$configFile"
+echo >>"$configFile"
+echo "logfileBackupPath=\${HOME}/.config/filmrisscopy/logs" >>"$configFile"
+echo "presetPath=\${HOME}/.config/filmrisscopy/presets" >>"$configFile"
+
+echo "FilmrissCopy installed under ~/bin/filmrisscopy"
 echo "To run in from everywhere you might have to add ~/bin to your \$PATH Variable (you can do that inside your ~/.bashrc)"
 echo
 echo "Type \"filmrisscopy\" to run"
