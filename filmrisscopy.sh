@@ -253,9 +253,7 @@ function batchVerify() {
             fi
             break
         done
-
     done
-
     endScreen
 }
 
@@ -652,6 +650,8 @@ function getChecksums() {
     local startLineChecksum=$(($(grep -n "CHECKSUM CALCULATIONS ON SOURCE:" "$logfile" | cut --delimiter=: --field=1) + 1))
     local endLineChecksum=$(($(grep -n "COMPARING CHECKSUM TO COPY:" "$logfile" | cut --delimiter=: --field=1) - 2))
 
+echo "$startLineChecksum Sta"
+echo "$endLineChecksum En"
     sed -n $startLineChecksum','$endLineChecksum'p' "$logfile"
 }
 
