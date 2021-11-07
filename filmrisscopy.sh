@@ -25,15 +25,15 @@ NORMAL=$(tput sgr0)
 version="0.2"
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
 configFile="${HOME}/.config/filmrisscopy/filmrisscopy.config"
-logfileBackupPath="${HOME}/.config/filmrisscopy/logs"
-presetPath="${HOME}/.config/filmrisscopy/presets"
+logfileBackupPath="${HOME}/.config/filmrisscopy/logs/"
+presetPath="${HOME}/.config/filmrisscopy/presets/"
 
 echo "${BOLD}FILMRISSCOPY VERSION $version${NORMAL}"
 echo
 
 cd "$(dirname "$scriptPath")"
 scriptPath=$(pwd)
-echo "LOCATION:     $scriptPath/"
+echo "LOCATION:     $scriptPath/filmrisscopy"
 
 if [ -f "$configFile" ]; then
     source "$configFile"
