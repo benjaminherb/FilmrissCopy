@@ -77,7 +77,7 @@ function setSource() {
     [[ "${sourceFolderTemp}" == */ ]] && sourceFolderTemp="${sourceFolderTemp::-1}" # Remove trailing /
 
     if [[ ! -d "$sourceFolderTemp" ]]; then
-        echo "$($RED)ERROR: $sourceFolderTemp IS NOT A VALID SOURCE$($NC)"
+        printError "ERROR: $sourceFolderTemp IS NOT A VALID SOURCE"
         setSource
     else
         setReelName
@@ -105,9 +105,9 @@ function setSource() {
             loop=false
             echo "-"
         elif [ ! -d "$sourceFolderTemp" ]; then
-            echo "$($RED)ERROR: $sourceFolderTemp IS NOT A VALID SOURCE$($NC)"
+            printError "ERROR: $sourceFolderTemp IS NOT A VALID SOURCE"
         elif [[ $duplicateSource == "true" ]]; then
-            echo "$($RED)ERROR: YOU CAN NOT SET THE SAME SOURCE TWICE IN A PROJECT$($NC)"
+            printError "ERROR: YOU CAN NOT SET THE SAME SOURCE TWICE IN A PROJECT"
         else
             setReelName
             allSourceFolders+=("$sourceFolderTemp")
@@ -137,7 +137,7 @@ function setDestination() {
     [[ "${destinationFolderTemp}" == */ ]] && destinationFolderTemp="${destinationFolderTemp::-1}" # Remove trailing /
 
     if [[ ! -d "$destinationFolderTemp" ]]; then
-        echo "$($RED)ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION $($NC)"
+        printError "ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION"
         setDestination
     fi
 
@@ -162,9 +162,9 @@ function setDestination() {
             loop=false
             echo "-"
         elif [ ! -d "$destinationFolderTemp" ]; then
-            echo "$($RED)ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION$($NC)"
+            printError "ERROR: $destinationFolderTemp IS NOT A VALID DESTINATION"
         elif [[ $duplicateDestination == "true" ]]; then
-            echo "$($RED)ERROR: YOU CAN NOT SET THE SAME DESTINATION TWICE IN A PROJECT$($NC)"
+            printError "ERROR: YOU CAN NOT SET THE SAME DESTINATION TWICE IN A PROJECT"
         else
             allDestinationFolders+=("$destinationFolderTemp")
         fi
@@ -211,7 +211,7 @@ function loadPreset() {
         read -er presetPath
 
         while [[ ! -f "$presetFile" ]] || [[ ! "$presetFile" == *".config" ]]; do
-            echo "$($RED)ERROR: \"$presetFile\" IS NOT A VALID PRESET FILE $($NC)"
+            printError "ERROR: \"$presetFile\" IS NOT A VALID PRESET FILE"
             echo
             echo "Choose Preset Path"
             read -er presetPath
@@ -228,7 +228,7 @@ function batchVerify() {
     read -er batchVerifyDirectory
 
     while [ ! -d "$batchVerifyDirectory" ]; do
-        echo "$($RED)ERROR: $batchVerifyDirectory IS NOT A VALID DIRECTORY$($NC)"
+        printError "ERROR: $batchVerifyDirectory IS NOT A VALID DIRECTORY"
         echo
         echo "Choose root directory for the batch verify:"
         read -er batchVerifyDirectory
@@ -328,7 +328,7 @@ function singleVerify() {
     read -er logFileVerification
 
     while [[ ! -f "$logFileVerification" ]] || [[ ! "$logFileVerification" == *"filmrisscopy_log.txt" ]]; do
-        echo "$($RED)ERROR: \"$logFileVerification\" IS NOT A VALID FILMRISSCOPY LOG FILE $($NC)"
+        printError "ERROR: \"$logFileVerification\" IS NOT A VALID FILMRISSCOPY LOG FILE"
         echo
         echo "Choose filmrisscopy_log.txt File"
         read -er logFileVerification
@@ -339,7 +339,7 @@ function singleVerify() {
     read -er copyDirectoryVerification
 
     while [ ! "$copyDirectoryVerification" == "" ] && [ ! -d "$copyDirectoryVerification" ]; do
-        echo "$($RED)ERROR: $copyDirectoryVerification IS NOT A VALID DIRECTORY$($NC)"
+        printError "ERROR: $copyDirectoryVerification IS NOT A VALID DIRECTORY"
         copyDirectoryVerification="" # Resets so you can use the default again
         echo
         echo "Choose Copy to verify [Default: $(dirname "$logFileVerification")]"
@@ -374,7 +374,7 @@ function verify() {
     elif [ "$verificationModeName" == "MD5" ]; then
         checksumUtility="md5sum"
     else
-        echo "$($RED)ERROR: LOG FILE [$logfilePath] CONTAINS NO CHECKSUMS$($NC)"
+        printError "ERROR: LOG FILE [$logfilePath] CONTAINS NO CHECKSUMS"
         return
     fi
 
@@ -428,7 +428,7 @@ function run() {
     destinationFreeSpace=$(df --block-size=1 --output=avail "$destinationFolder" | cut --delimiter=$'\n' --field=2)
 
     if [[ $(($destinationFreeSpace - $totalByteSpace)) -lt 20 ]]; then
-        echo "$($RED)ERROR: NOT ENOUGH DISK SPACE LEFT IN $destinationFolder$($NC)"
+        printError "ERROR: NOT ENOUGH DISK SPACE LEFT IN $destinationFolder"
         return
     fi
 
@@ -438,7 +438,7 @@ function run() {
     if [[ ! -d "$destinationFolderFullPath" ]]; then # Check if the folder already exists, and creates the structure if needed
         mkdir -p "$destinationFolderFullPath"
     else
-        echo "$($RED)ERROR: DIRECTORY ALREAD EXISTS IN THE DESTINATION FOLDER$($NC)"
+        printError "ERROR: DIRECTORY ALREAD EXISTS IN THE DESTINATION FOLDER"
         echo
         fileDifference=$(($(find "$sourceFolder" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc --lines) - $(find "$destinationFolderFullPath" -type f \( -not -name "*sum.txt" -not -name "*filmrisscopy_log.txt" -not -name ".DS_Store" \) | wc --lines)))
 
@@ -585,7 +585,7 @@ function fileSizeComparison() {
         sed -i "$(($headerLength + 1)) a FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) MATCH!\n" "$logfilePath" >/dev/null 2>&1
     else
         echo $(du --summarize "${destinationFolderFullPath}/${sourceBaseName}" | cut --field=1)
-        echo "${BOLD}$($RED)ERROR: FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) DONT MATCH!${NORMAL}$($NC)"
+        printError "ERROR: FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) DONT MATCH!"
         sed -i "$(($headerLength + 1)) a ERROR: FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) DONT MATCH!\n" "$logfilePath" >/dev/null 2>&1
     fi
 }
@@ -640,7 +640,7 @@ function checksumComparison() {
         echo "${BOLD}NO CHECKSUM ERRORS!${NORMAL}"
         sed -i "$(($headerLength + 1)) a NO CHECKSUM ERRORS!\n" "$logfilePath" >/dev/null 2>&1
     else
-        echo "${BOLD}$($RED)ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST${NORMAL}$($NC)"
+        printError "ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST"
         sed -i "$(($headerLength + 1)) a ERROR: $(($totalFileCount - $checksumPassedFiles)) / $totalFileCount DID NOT PASS THE CHECKSUM TEST\n" "$logfilePath" >/dev/null 2>&1
     fi
 
@@ -775,6 +775,11 @@ function formatTime() {
     printf "%02d:%02d:%02d" $h $m $s
 }
 
+## prints error in bold red
+function printError() {
+    echo "$($RED)${BOLD}$1$($NC)${NORMAL}"
+}
+
 ## Print Current Status
 function printStatus() {
     echo
@@ -865,7 +870,7 @@ function startupSetup() {
         if [ -f "$presetLast" ]; then
             source "${presetPath}/filmrisscopy_preset_last.config"
         else
-            echo "$($RED)ERROR: LAST PRESET NOT FOUND$($NC)"
+            printError "ERROR: LAST PRESET NOT FOUND"
             startupSetup
         fi
 
@@ -953,7 +958,7 @@ function runJobs() {
     else
 
         echo
-        echo "$($RED)ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET$($NC)"
+        printError "ERROR: PROJECT NAME, SOURCE OR DESTINATION ARE NOT SET YET"
     fi
 }
 
