@@ -27,7 +27,7 @@ wget https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/install.sh -O - | bash
 ```
 
 ## Logging
-Comprehensive logfiles for the completed process are stored in the destination folder as well as in a filmrisscopy_logs folder where the script is located (default is ~/bin/filmrisscopy). The log file can also be used to verify copys of the data later. A log files looks like this:
+Comprehensive logfiles for the completed process are stored in the destination folder as well as in a logs folder (default is ~/.config/filmrisscopy/logs). The log file can also be used to verify copys of the data later. A log files looks like this:
 
 ```
 FILMRISSCOPY VERSION 0.2
@@ -38,7 +38,7 @@ SOURCE: /mnt/SRC
 DESTINATION: /mnt/DST/TEST/SD01_19500101/SD01_19500101_TEST_A001
 JOB: 1 / 1
 RUNMODE: copy
-DATE/TIME: 20211106_1551
+DATE/TIME: 20121212_1212
 VERIFICATION: xxHash
 
 NO CHECKSUM ERRORS!
@@ -76,7 +76,7 @@ COMPARING CHECKSUM TO COPY:
 ## Verify
 There are two ways to verify using a filmrisscopy log file.
 The first option is to choose a logfile and the corresponding directory to verify.
-The second option is "Batch Verify". Here you choose a top level directory and filmrisscopy will recursivly search for all log files and verify based on the oldest log file (granted it has completed checksums).<br/>
+The second option is "Batch Verify". Here you choose a top level directory and filmrisscopy will recursivly search for all log files and verify based on the oldest log file (which has the most checksums).<br/>
 The Output will be stored in a filmrisscopy_verification_log.txt file.
 
 ## V0.2 Changelog

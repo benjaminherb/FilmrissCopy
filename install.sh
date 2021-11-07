@@ -49,10 +49,14 @@ configDirectory="${HOME}/.config/filmrisscopy/"
 configFile="$configDirectory/filmrisscopy.config"
 
 mkdir -p "$configDirectory"
-echo "#!/bin/bash" >>"$configFile"
-echo >>"$configFile"
-echo "logfileBackupPath=\${HOME}/.config/filmrisscopy/logs" >>"$configFile"
-echo "presetPath=\${HOME}/.config/filmrisscopy/presets" >>"$configFile"
+
+if [ ! -f "$configFile" ]; then # Writes default config
+    echo "#!/bin/bash" >>"$configFile"
+    echo >>"$configFile"
+    echo "logfileBackupPath=\${HOME}/.config/filmrisscopy/logs" >>"$configFile"
+    echo "presetPath=\${HOME}/.config/filmrisscopy/presets" >>"$configFile"
+    echo "verificationMode=xxhash" >>"$configFile"
+fi
 
 echo "${BOLD}FilmrissCopy installed under /usr/local/bin/filmrisscopy${NORMAL}"
 
