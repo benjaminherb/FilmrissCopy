@@ -33,14 +33,14 @@ echo
 
 cd "$(dirname "$scriptPath")"
 scriptPath=$(pwd)
-echo "LOCATION:     $scriptPath/filmrisscopy"
+echo "${BOLD}LOCATION:${NORMAL}     $scriptPath/filmrisscopy"
 
 if [ -f "$configFile" ]; then
     source "$configFile"
-    echo "CONFIG:       $configFile"
+    echo "${BOLD}CONFIG:${NORMAL}       $configFile"
 fi
-echo "PRESETS:      $presetPath"
-echo "LOG FILES:    $logfileBackupPath"
+echo "${BOLD}PRESETS:${NORMAL}      $presetPath"
+echo "${BOLD}LOG FILES:${NORMAL}    $logfileBackupPath"
 
 mkdir -p "$logfileBackupPath"
 mkdir -p "$presetPath"
@@ -249,19 +249,75 @@ function batchVerify() {
 
     for copyDirectoryVerification in "${allLogFileDirectorys[@]}"; do
         echo
-        echo "FOUND DIRECTORY: $copyDirectoryVerification"
+        echo "${BOLD}FOUND DIRECTORY:${NORMAL} $copyDirectoryVerification"
+        chooseLogFile "$copyDirectoryVerification"
 
-        local logFiles=($(find "$copyDirectoryVerification"/*filmrisscopy_log.txt))
-
-        for logFileVerification in "${logFiles[@]}"; do
-            if grep -q "COMPARING CHECKSUM TO COPY" "$logFileVerification"; then
-                echo "USING $logFileVerification"
-                verify # verifys with the current logFileVerification
-            fi
-            break
-        done
+        if [ -n "$chosenLogfile" ]; then
+            allChosenLogfiles+=("$chosenLogfile")
+            echo "${BOLD}USED LOGFILE:${NORMAL}    $(basename "$chosenLogfile")"
+        else
+            echo "${BOLD}NONE OF THE AVAILABLE LOGFILES SEEM TO CONTAIN COMPLETED CHECKSUMS! SKIPPING DIRECTORY!${NORMAL}"
+        fi
     done
+
+    echo
+    echo "Run Batch Verify? (y/n)"
+    read -er runBatchVerify
+
+    while [ ! "$runBatchVerify" == "y" ] && [ ! "$runBatchVerify" == "n" ]; do
+        echo "Run Batch Verify? (y/n)"
+        read -er runBatchVerify
+    done
+
+    if [ "$runBatchVerify" == "y" ]; then
+        local job=0
+        for logFileVerification in "${allChosenLogfiles[@]}"; do
+            ((job += 1))
+            copyDirectoryVerification=$(dirname "$logFileVerification")
+            echo
+            echo "${BOLD}JOB $job / ${#allChosenLogfiles[@]} VERIFING  $(dirname "$logFileVerification")  WITH  $(basename "$logFileVerification")${NORMAL}"
+            verify
+        done
+
+    fi
+
     endScreen
+}
+
+# Choose logfile wich contains the most checksums
+function chooseLogFile() {
+    local dir="$1" # recieves the directory to search in
+    local foundLogfiles=($(find "$dir"/*filmrisscopy_log.txt))
+    local -a possibleLogfiles=()
+
+    for logfile in "${foundLogfiles[@]}"; do
+        echo "FOUND LOGFILE:   $(basename "$logfile")"
+
+        if [ "$(grep -c "COMPARING CHECKSUM TO COPY" "$logfile")" == 1 ] && # Sorts out Logfiles with no (or multiple checksum sections)
+            [ "$(grep -c "CHECKSUM CALCULATIONS ON SOURCE" "$logfile")" == 1 ]; then
+            possibleLogfiles+=("$logfile")
+        fi
+    done
+
+    # Handle cases where there are multiple logfiles by choosing the one with the most checksums
+    if [ "${#possibleLogfiles[@]}" -gt 1 ]; then
+        local mostChecksums=0
+
+        for plf in "${possibleLogfiles[@]}"; do
+            local checksums=$(getChecksums "$plf")
+
+            if [ "${#checksums[@]}" -gt "$mostChecksums" ]; then
+                chosenLogfile="$plf"
+                mostChecksums="${#checksums[@]}"
+            fi
+        done
+
+    elif [ "${#possibleLogfiles[@]}" == 1 ]; then
+        chosenLogfile="${possibleLogfiles[0]}"
+    else
+        chosenLogfile=""
+    fi
+
 }
 
 ## Verifys Copy using the checksums from a filmrisscopy_log file
@@ -792,7 +848,7 @@ function writePreset() {
 function startupSetup() {
 
     echo
-    echo "(0) SKIP  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
+    echo "(0) SKIP (USE DEFAULTS)  (1) RUN SETUP  (2) LOAD LAST PRESET  (3) LOAD PRESET FROM FILE"
     read -er usePreset
     if [ ! "$usePreset" == "0" ] && [ ! "$usePreset" == "1" ] && [ ! "$usePreset" == "2" ] && [ ! "$usePreset" == "3" ]; then
         startupSetup
