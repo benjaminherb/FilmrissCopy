@@ -1,12 +1,19 @@
 #!/bin/bash
 
 # Installs filmrisscopy in /usr/local/bin and makes it executable
+# Also creates a data dir for logs, presets and a config file
+
+installDir="/usr/local/bin"
+dataDir="${HOME}/.config/filmrisscopy"
+version=0.2
 
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 
-echo "${BOLD}Installing FilmrissCopy V0.2${NORMAL}"
+echo "${BOLD}Installing FilmrissCopy V$version${NORMAL}"
 echo
+
+## Checking Dependencies
 
 echo "${BOLD}Checking dependencies...${NORMAL}"
 dependencyMissing=0
@@ -37,28 +44,40 @@ if [ "$dependencyMissing" == 0 ]; then
 else
     echo "$dependencyMissing dependencies were not found."
 fi
+
+## Installation
+
+cd ${installDir}/
+
+if [ -f "${installDir}/filmrisscopy" ]; then
+    echo
+    echo "${BOLD}A version of FilmrissCopy is already installed!"
+    echo "Updating to V${version}${NORMAL}"
+
+fi
+
 echo
-
-cd /usr/local/bin/
-
-echo "Needing Root Privileges to install to /usr/local/bin"
-sudo wget -O filmrisscopy https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/filmrisscopy.sh
+echo "${BOLD}Needing Root Privileges to install to ${installDir}${NORMAL}"
+echo "----------------------------"
+sudo wget --no-verbose -O filmrisscopy https://gitlab.com/Nueffel/filmrisscopy/-/raw/master/filmrisscopy.sh
 sudo chmod +x filmrisscopy
+echo "----------------------------"
 
-configDirectory="${HOME}/.config/filmrisscopy/"
-configFile="$configDirectory/filmrisscopy.config"
+## Config/Data/Log Setup
 
-mkdir -p "$configDirectory"
+configFile="${dataDir}/filmrisscopy.config"
+
+mkdir -p "${dataDir}"
 
 if [ ! -f "$configFile" ]; then # Writes default config
-    echo "#!/bin/bash" >>"$configFile"
+    echo " #!/bin/bash" >>"$configFile"
     echo >>"$configFile"
-    echo "logfileBackupPath=\${HOME}/.config/filmrisscopy/logs" >>"$configFile"
-    echo "presetPath=\${HOME}/.config/filmrisscopy/presets" >>"$configFile"
+    echo "logfileBackupPath=\${dataDir}/logs" >>"$configFile"
+    echo "presetPath=\${dataDir}/presets" >>"$configFile"
     echo "verificationMode=xxhash" >>"$configFile"
 fi
 
-echo "${BOLD}FilmrissCopy installed under /usr/local/bin/filmrisscopy${NORMAL}"
+echo "${BOLD}FilmrissCopy installed under ${installDir}/filmrisscopy${NORMAL}"
 
 echo
 echo "Type ${BOLD}filmrisscopy${NORMAL} to run"
