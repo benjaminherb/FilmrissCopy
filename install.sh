@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Installs filmrisscopy in ~/bin and makes it executable
+# Installs filmrisscopy in /usr/local/bin and makes it executable
 
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)

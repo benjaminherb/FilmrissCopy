@@ -39,6 +39,7 @@ if [ -f "$configFile" ]; then
     source "$configFile"
     echo "${BOLD}CONFIG:${NORMAL}       $configFile"
 fi
+
 echo "${BOLD}PRESETS:${NORMAL}      $presetPath"
 echo "${BOLD}LOG FILES:${NORMAL}    $logfileBackupPath"
 
@@ -412,7 +413,6 @@ function backupLogFile() {
         while [[ -f "$logfileBackupPath/$logfileName" ]]; do
             logfileName=$(echo "$logfileName" | sed "s/_[0-9]*_filmrisscopy/_${i}_filmrisscopy/g")
             ((i++))
-            echo $logfileName
         done
 
         cp -i "$logfilePath" "$logfileBackupPath/$logfileName" # Backup logs to a folder in the scriptpath
@@ -1041,6 +1041,5 @@ baseLoop
 ## PRIO 2
 ## @TODO MHL Implementation
 ## @TODO Implement Telegram Bot
-## @TODO Default Preset
 ## @TODO Log Times of individual Tasks
 ## @TODO Calculate Source Checksum Once for all Destinations
