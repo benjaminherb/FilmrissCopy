@@ -25,8 +25,8 @@ NORMAL=$(tput sgr0)
 version="0.2"
 scriptPath=${BASH_SOURCE[0]} # Find Scriptpath for the Log File Save Location
 configFile="${HOME}/.config/filmrisscopy/filmrisscopy.config"
-logfileBackupPath="${HOME}/.config/filmrisscopy/logs/"
-presetPath="${HOME}/.config/filmrisscopy/presets/"
+logfileBackupPath="${HOME}/.config/filmrisscopy/logs"
+presetPath="${HOME}/.config/filmrisscopy/presets"
 
 echo "${BOLD}FILMRISSCOPY VERSION $version${NORMAL}"
 echo
@@ -39,6 +39,7 @@ if [ -f "$configFile" ]; then
     source "$configFile"
     echo "${BOLD}CONFIG:${NORMAL}       $configFile"
 fi
+
 echo "${BOLD}PRESETS:${NORMAL}      $presetPath"
 echo "${BOLD}LOG FILES:${NORMAL}    $logfileBackupPath"
 
@@ -412,7 +413,6 @@ function backupLogFile() {
         while [[ -f "$logfileBackupPath/$logfileName" ]]; do
             logfileName=$(echo "$logfileName" | sed "s/_[0-9]*_filmrisscopy/_${i}_filmrisscopy/g")
             ((i++))
-            echo $logfileName
         done
 
         cp -i "$logfilePath" "$logfileBackupPath/$logfileName" # Backup logs to a folder in the scriptpath
@@ -574,8 +574,8 @@ function copyStatus() {
 
 ## Verify Copy by comparing Byte Size and file count
 function fileSizeComparison() {
-    local sourceSize=$(du --summarize "${sourceFolder}" | cut --field=1)
-    local copySize=$(du --summarize "${destinationFolderFullPath}/${sourceBaseName}" | cut --field=1)
+    local sourceSize=$(du --summarize --bytes "${sourceFolder}" | cut --field=1)
+    local copySize=$(du --summarize --bytes "${destinationFolderFullPath}/${sourceBaseName}" | cut --field=1)
 
     local sourceFileCount=$(find "$sourceFolder" -type f | wc --lines)
     local copyFileCount=$(find "${destinationFolderFullPath}/${sourceBaseName}" -type f | wc --lines)
@@ -584,9 +584,13 @@ function fileSizeComparison() {
         echo "${BOLD}FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) MATCH! ${NORMAL}"
         sed -i "$(($headerLength + 1)) a FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) MATCH!\n" "$logfilePath" >/dev/null 2>&1
     else
-        echo $(du --summarize "${destinationFolderFullPath}/${sourceBaseName}" | cut --field=1)
         printError "ERROR: FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) DONT MATCH!"
         sed -i "$(($headerLength + 1)) a ERROR: FILE SIZE ( $copySize / $sourceSize ) AND FILE COUNT ( $copyFileCount / $sourceFileCount ) DONT MATCH!\n" "$logfilePath" >/dev/null 2>&1
+
+        diff=$(("$copySize" - "$sourceSize"))
+        if [ ${diff#-} -lt 100 ] && [ "$copyFileCount" == "$sourceFileCount" ]; then
+            printError "THIS MIGHT BE DUE TO A DISCREPENCY WHEN COMPARING THE SIZE ON DISK. USE CHECKSUM VERIFICATION TO AVOID THIS ERROR"
+        fi
     fi
 }
 
@@ -697,7 +701,7 @@ function getChecksums() {
     sed -n $startLineChecksum','$endLineChecksum'p' "$logfile"
 }
 
-## Get SNR by finding the partition of the sourcedir, comparing it to available disks and then runnign lsblk
+## Get SNR by finding the partition of the sourcedir, comparing it to available disks and then running lsblk
 function getSerial() {
 
     local availableDisks=($(lsblk | grep disk | cut --delimiter=" " --field=1))           # Get all available disks
@@ -1037,6 +1041,5 @@ baseLoop
 ## PRIO 2
 ## @TODO MHL Implementation
 ## @TODO Implement Telegram Bot
-## @TODO Default Preset
 ## @TODO Log Times of individual Tasks
 ## @TODO Calculate Source Checksum Once for all Destinations
